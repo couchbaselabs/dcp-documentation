@@ -1,7 +1,7 @@
 # Unified Protocol for Replication (UPR)
 
-* document status: PROPOSAL / DRAFT
-* document version: 0.3
+* status: PROPOSAL / DRAFT
+* latest: https://github.com/couchbaselabs/cbupr/blob/master/spec.md
 
 ## Table of contents
 
@@ -88,7 +88,7 @@ A Bucket has properties of:
 
 * Bucket Name (like “default” or “product-catalog”).
 * Bucket Version (new for UPR).
-** A Bucket also has 1024 Partitions.
+* A Bucket also has 1024 Partitions.
 
 #### Partition
 
@@ -99,8 +99,8 @@ A Partition has properties of:
 * Partition Takeover History (new for UPR).
 ** This is a sequence of Partition Takeover Records.
 ** A Partition Takeover Record == active Node Id + Sequence Number.
-* A Bucket also has a logical Base Data Set.
-* A Bucket also has a logical Changes Stream.
+* A Partition also has a logical Base Data Set.
+* A Partition also has a logical Changes Stream.
 
 #### Node Id
 
@@ -118,7 +118,9 @@ Sequence Numbers should be incremented or assigned immediately at
 mutation request processing time (e.g., incremented in-memory).
 
 [???? Is a Sequence Number == CAS number?  Some say for XDCR they
-might be !=, but would be nice to unify them.]
+might be !=, but would be nice to unify them.  If the CAS value is not
+necessarily the same across clusters, then we can possibly unify
+Sequence Number and CAS]
 
 #### Base Data Set
 
@@ -145,12 +147,12 @@ A Mutation is a key-value create/update/delete.
 
 A Safe Message includes a Sequence Number.
 
-A Safe Message, when sent from is a master to a client, says "I, the
+A Safe Message, when sent from a master to a client, says "I, the
 master, can guarantee to you, the client, that before Sequence Number
 X there are no `holes' in the data you've seen”.  That is, the client
 has been sent at least one version of all keys that have existed at X
 or before.  The client can use the Safe Message’s sequence number X to
-establish a rollback point in whatever manner it wants. Without a Safe
+establish a rollback point in whatever manner it wants.  Without a Safe
 Message it would not be possible for clients to determine a safe
 message to roll back to, because it could never be sure it didn't have
 holes in its data.  Related to Safe Message promises, the master may
@@ -174,7 +176,9 @@ reconnected streams restarting from zero.
 #### Partition Takeover Record
 
 A Partition Takeover Record is a record of a server becoming the
-master for a partition.
+master for a partition.  A restarted master is also recorded with its
+own Partition Takeover Record, as that's treated as an edge case of a
+server (re-)becoming the master.
 
 The properties of a Partition Takeover Record include...
 
@@ -187,7 +191,6 @@ A Partition Takeover History is a sequence of Partition Takeover
 Records.  For example...
 
     A:14, B:24, C:201
-
 
 That would read as node A was the master/active server for the
 partition at sequence number 14.  Then node B took over as
@@ -220,14 +223,12 @@ Examples in this document follow these conventions:
 
 For example, here’s the changes stream of a partition...
 
-    A:14, m15, m16, m17, s18, m19, m20, s21, m22, m23
+    A:14, m15, m16, m17, m18, s18, m19, m20
 
 That would read in English as node A took over active/master ownership
 of the partition at sequence number 14.  Then, there were some
-mutations: 15, 16, 17.  Then, there was a safe message message at
-sequence number 18.  Then, more mutations: 19, 20; and, another safe
-message message at 21, and more mutations of sequence numbers 22 and
-23.
+mutations: 15, 16, 17, 18.  Then, there was a safe message at sequence
+number 18.  Then, more mutations: 19, 20.
 
 ## Basic scenarios
 
@@ -238,11 +239,11 @@ handling to be familiar.
 
 When a replica makes a connection (“⇐”) to a master server in order to
 replicate a partition (whether the first-time or not), the replica
-provides its partition takeover history and safe message records as
+provides its partition takeover history and rollback'able points as
 part of its UPR/TAP-Connect request.  For the first time, those
 parameters are empty...
 
-    ⇐ Partition Takeover History: (none) and Rollback’able Point: (none)
+    ⇐ Partition Takeover History: (none) and Rollback’able To: (none)
 
 The master will determine that there are no conflicts and no replica
 rewinding in this easy case.  So, the master next streams its
@@ -263,7 +264,7 @@ persisted everything that the master had sent (e.g., replica process
 crashed).  For example, the restarted replica might be missing
 mutation m23...
 
-    replica state: A:14, m15, m16, m17, m18, R18, m19, m20, m21, s21, m22
+    replica state: A:14, m15, m16, m17, m18, R18, m19, m20, m21, R21, m22
 
 Then the replica would reconnect using these parameters, which mean “I
 think A was the master at sequence number 14, and I can rollback to
@@ -309,7 +310,7 @@ sent out earlier since Safe Messages are ephemeral.
 Note: If a master server restarts in quick succession, we might end up
 with multiple partition takeover records, like A:24, A:25, A:26, A:27.
 Some servers may choose to optimize, realizing there are no
-intermediate mutations, and keep a single, last A:24 record.
+intermediate mutations, and keep just the single, last A:24 record.
 
 ### Master server restarts after slow persistence
 
@@ -338,12 +339,12 @@ point) and have the master replay from m19 onwards (thereby sending
 m19, A:20’, m21’, m22’, m23’ and onwards to the replica).
 
 Note in this example that m19 is resent to the replica, which is safe,
-but is needed to meet the replica’s claimed rollback’able information.
+but is needed to meet the replica’s claimed rollback’able points.
 
 [???? Who determines divergence?  The master or the replica?  If it’s
-the replica, then the replica would have more freedom to choose but
-there’s more chance for bugs on repeated divergence implementation
-logic.]
+the replica, then the replica would have more freedom to choose what
+to do but there’s perhaps more chance for bugs on repeated divergence
+implementation logic.]
 
 ### Failover
 
@@ -379,7 +380,7 @@ record is kind of like the start of a branch in the revision history.
 
 ### Rebalance
 
-A rebalance, which has a controlled partition takeover would also have
+A rebalance, which is a controlled partition takeover, would also have
 the new master immediately assign a new partition takeover record,
 thereby following the scenario similar to failover.  In general,
 whenever a partition is switched to active state, it should be
@@ -427,7 +428,7 @@ master has sent.
 Eventually, there will be a long sequence of mutations in a Changes
 Stream.  To reclaim space, a deep compaction (compaction and deletion
 tombstone purging) can be performed on the oldest section of the
-Changes Stream .  After such a “deep compaction”, you’re left with
+Changes Stream.  After such a “deep compaction”, you’re left with
 just the set of active keys (and their associated values).  That is,
 you’re left with a new Base Data Set.
 
@@ -439,20 +440,22 @@ master.
 
 [???? Need more info here.]
 
-### Replicas should support “rewinding” or rollback’ability for efficiency
+### Replicas should support rollbacks for efficiency
 
 If a replica (like a Hadoop integration) disconnects, a lot can happen
 while it’s disconnected.  If the replica cannot support rewinding /
 rollback, or has been disconnected so long that the master server has
-purged older safe messages, then a full dump (starting from zero) is
-needed.
+compacted/purged older mutation history, then a full dump (starting
+from zero) is needed.
 
 Replicas that support MVCC and rollback to any past point in time
 would have the easiest implementation of this.
 
 Incremental backup might give the option to users to just keep
 blithely rolling forward with “just give me your best effort
-incremental delta, even if there’s a gap or inconsistency”.
+incremental delta, even if there’s a gap or inconsistency”, because
+the user would rather backup at least some inconsistent recent data
+rather than nothing.
 
 ## Interesting scenarios
 
@@ -574,4 +577,4 @@ sure it didn't have holes in its data.
 * 0.3 - incorporated Aaron feedback about safe points or safe
   messages, replacing the older “snapshot” concept.  Shared with
   Dustin, Marty, Filipe, Damien, Alk, Chiyoung, Aaron, Yaseen for
-  (re-review)
+  review.
