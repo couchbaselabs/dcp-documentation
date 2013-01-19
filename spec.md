@@ -9,15 +9,15 @@
 * Motivation
 * Previous writeups / proposals / related links
 * Terminology
-** Partition == VBucket
-** Logical objects / properties
+    * Partition == VBucket
+    * Logical objects / properties
 * Basic scenarios
-** Connection by a replica
-** Reconnection by a replica
-** Master server restarts
-** Master server restarts with slow persistence
-** Failover
-** Rebalance
+    * Connection by a replica
+    * Reconnection by a replica
+    * Master server restarts
+    * Master server restarts with slow persistence
+    * Failover
+    * Rebalance
 * Additional concepts
 * Interesting scenarios
 * Conclusion & next steps
@@ -97,8 +97,8 @@ A Partition has properties of:
 * Partition Id (0 to 1023).
 * Partition State (active, replica, pending, or dead).
 * Partition Takeover History (new for UPR).
-** This is a sequence of Partition Takeover Records.
-** A Partition Takeover Record == active Node Id + Sequence Number.
+    * This is a sequence of Partition Takeover Records.
+    * A Partition Takeover Record == active Node Id + Sequence Number.
 * A Partition also has a logical Base Data Set.
 * A Partition also has a logical Changes Stream.
 
@@ -219,7 +219,7 @@ Examples in this document follow these conventions:
 * “n” prefix before a number means a Mutation from the east coast cluster (e.g., n123).
 * “s” prefix before a number means a Safe Message (e.g., s17).
 * “t” prefix before a number means a Safe Message from the east coast cluster (e.g., t31).
-* CapitalLetter:number means a Partition Takeover Record (e.g, “A:16).
+* CapitalLetter:number means a Partition Takeover Record (e.g, A:16).
 
 For example, here’s the changes stream of a partition...
 
