@@ -35,12 +35,12 @@ addresses replication stream restartability.
 Many upcoming features will require restartable, incremental data
 replication.  For example...
 
-* 1. Indexing, especially distributed indexing.
-* 2. Incremental backup.
-* 3. Intra-cluster replication (e.g., fewer backfills).
-* 4. Inter-cluster replication (e.g., higher performance XDCR)
-* 5. Integration with outside datastores and indexes (OLAP, Hadoop, ElasticSearch, ETL software, etc).
-* 6. Persistence can also be logically “modeled” using the concepts of replication.
+1. Indexing, especially distributed indexing.
+2. Incremental backup.
+3. Intra-cluster replication (e.g., fewer backfills).
+4. Inter-cluster replication (e.g., higher performance XDCR)
+5. Integration with outside datastores and indexes (OLAP, Hadoop, ElasticSearch, ETL software, etc).
+6. Persistence can also be logically “modeled” using the concepts of replication.
 
 UPR addresses these multiple replication needs with a single, unified,
 synchronization model and networking protocol.
@@ -63,10 +63,10 @@ spec so that teams can work without ambiguity.
 
 ## Previous writeups / proposals / related links
 
-* 1. http://hub.internal.couchbase.com/confluence/display/PM/3.0+-+Indexing+and+Querying+links
-* 2. http://hub.internal.couchbase.com/confluence/display/cbeng/Checkpointing+and+Incremental+Replication+Through+TAP
-* 3. [Insert pointers to Dustin’s writeups here.]
-* 4. [Insert pointers to Aaron’s writeups here.]
+ 1. http://hub.internal.couchbase.com/confluence/display/PM/3.0+-+Indexing+and+Querying+links
+ 2. http://hub.internal.couchbase.com/confluence/display/cbeng/Checkpointing+and+Incremental+Replication+Through+TAP
+ 3. [Insert pointers to Dustin’s writeups here.]
+ 4. [Insert pointers to Aaron’s writeups here.]
 
 ## Terminology
 
@@ -122,6 +122,13 @@ might be !=, but would be nice to unify them.  If the CAS value is not
 necessarily the same across clusters, then we can possibly unify
 Sequence Number and CAS]
 
+> `aaron@:` This depends on the guarantees we want CAS to provide. If the
+> only thing CAS needs to provide is that if you change an item, the CAS
+> will change, then there is no reason we *couldn't* do this, but it's
+> worth considering the risks of giving CAS any obvious meaning beyond
+> its current purpose, and what expectations we might be setting for
+> users.
+
 #### Base Data Set
 
 A Base Data Set is a logical, starting set of distinct keys and their
@@ -138,6 +145,10 @@ plus Changes Stream should fully, but not necessarily compactly,
 describe the latest key-value data of a Partition. A Changes Stream
 might also have ephemeral (not necessarily repeatable) Safe Messages
 interspersed in it.
+
+> `aaron@:` This is not strictly true. The change stream is guaranteed
+> to fully describe history *iff* it contains a "Safe Message", (I'm not
+> a fan of this name.) and *only* before that message.
 
 #### Mutation
 
@@ -159,10 +170,28 @@ holes in its data.  Related to Safe Message promises, the master may
 no longer de-duplicate mutations older than the Safe Message’s
 sequence number since de-duplication would introduce holes.
 
+> `aaron@:` the bit about de-duplication here is off. It's not something
+> the clients see or care about. Plus, once a "Safe Message" has been
+> sent, the server actually *may* be able to deduplicate behind that
+> point, provided that all other connected clients are farther ahead
+> than that point. 
+
 A Safe Message, when sent from a client to a master, says “I, the
 client, am okay with you throwing away data (e.g., purging deletion
 tombstones) before this sequence number Y, because I have either seen
 them or am confident I don't need to see them later.”
+
+> `aaron@:` These are unrelated concepts, and conflating them is going
+> to cause confusion. The Server->Client "Safe Message" (which have so
+> far been called "Snapshots") is used to indicate points in a change
+> stream that can be considered to delineate complete views of the data
+> set. 
+
+> The Client->Server "Safe Message" (which is part of a proposal
+> for deletion purging, and I previously called "Last Safe Sequence") is
+> used to indicate that a particular observer has durably persisted
+> mutations before that sequence, and has nothing to do with
+> completeness or consistency.
 
 A master does not necessarily need to persist the Safe Messages that
 it sends to clients, so a “replay” of the Changes Stream might have
@@ -207,6 +236,20 @@ is used to help the master manage deletion tombstone purging.
 [???? This just popped up 2013/01/18 - do we actually need this
 concept / optimization?]
 
+> `aaron@:` This is part of an idea I'm exploring for safe deletion
+> purging. It adds a signficant amount of complexity and for the first
+> pass may be ignored in favor of a simpler approach, being to only
+> allow purges of data that is sufficiently old, and only during times
+> when things are in a known steady state. As such, this can be thought
+> of as an optimization over that that allows us to decide much more
+> quickly that a tombstone is safe to delete.
+
+> Whether this is necessary depends on the rate at which a particular
+> user's resources are consumed by deleted items. For typical users, the
+> simple approach ought to be enough, but for a user that creates lots
+> of unique, very short-lived items, this would help to prevent their
+> resources from being spent on managing a bunch of tombstones.
+
 ### Example conventions
 
 Examples in this document follow these conventions:
@@ -244,6 +287,10 @@ part of its UPR/TAP-Connect request.  For the first time, those
 parameters are empty...
 
     ⇐ Partition Takeover History: (none) and Rollback’able To: (none)
+
+> `aaron@:` I'm thinking when connecting, these clients are also going
+> to be telling the remote end what point they want messages since.
+> Here it would be `Since: 0`
 
 The master will determine that there are no conflicts and no replica
 rewinding in this easy case.  So, the master next streams its
@@ -312,6 +359,10 @@ with multiple partition takeover records, like A:24, A:25, A:26, A:27.
 Some servers may choose to optimize, realizing there are no
 intermediate mutations, and keep just the single, last A:24 record.
 
+> `aaron@:` Doesn't the part after the : here encode the last known
+> mutation sequence behind the takeover point? In which case we'd just
+> see `A:24`, `A:24`, `A:24`, no?
+
 ### Master server restarts after slow persistence
 
 In the case when persistence on the master was slow and the master
@@ -378,6 +429,44 @@ s23’’, m24’’ and onwards) to the rolled-back replica.
 As a very rough analogy to DVCS (e.g., git), a partition takeover
 record is kind of like the start of a branch in the revision history.
 
+> `aaron@:` I'm going to affix the writeup I did about finding the
+> branching point a few weeks ago. It was before some of the
+> snapshotting/"safe message" stuff was discussed. The implication of
+> that is that the point to roll back to needs to be before a safe
+> message. That is, the section of the changes stream *after* the most
+> recent "safe msssage"/snapshot should be thought of as "unsafe" and
+> *must* be thrown away in a failover situation.
+
+> "Finding the branching point":
+
+> For each vbucket, the cluster should maintain a log (with reasonable
+> maxiumum number of entries) of takeover events.
+> 
+> Before a node becomes active and starts taking mutations for a
+> vbucket, it should enter in this log a GUID to identify the entry, and
+> that it took over that vbucket at the current sequence number, and try
+> to make sure this propagates around. (Ideally, connecting replicas
+> should sync up TOLs with the master before they start exchangning KV
+> data)
+> 
+> TAP clients should ask for the ID of the most recent entry in this
+> log. If they are starting from scratch, they should save it.
+> Otherwise, they should check it against their last saved Takeover ID.
+> If it is not the same, the TAP client should ask for the sequence
+> number of the *next takeover after the takeover matching their
+> previously saved ID*.
+> 
+> If the saved entry could not be found, that client will have to
+> restart from scratch.
+> 
+> The TAP client must *at least* roll back changes that happened after
+> that sequence number, and restart reading the TAP stream from the
+> point it rolled back to. Some clients may have a rollback mechanism
+> that is "chunky", having periodic rollbackable-to points, and it is
+> okay for these to roll back to the first rollbackable-to point they
+> can get to that is earlier than this sequence.
+
+
 ### Rebalance
 
 A rebalance, which is a controlled partition takeover, would also have
@@ -439,6 +528,11 @@ compacted”, clients should occasionally send Safe Messages back to the
 master.
 
 [???? Need more info here.]
+
+> `aaron@:` This is part of the deletion purging mechanism I discussed
+> above as a comment about the Client Registry. It is unrelated to and
+> should not be confused with the "Safe Messages" (which I've been
+> calling Snapshot Messages) that go in the Provider->Consumer direction
 
 ### Replicas should support rollbacks for efficiency
 
@@ -542,7 +636,7 @@ Next steps are to get this reviewed, feedback’ed, improved, approved and built
 
 ## TODO / followup / feedback
 
-From alk... In addition to that, urp source can _always_ drop current
+From alk... In addition to that, upr source can _always_ drop current
 safe message/checkpoint and start sending mutations towards more fresh
 one. Where I understand shapshot/checkpoint as "there cannot be any
 'unclosed' holes".  Unless there are deletion purges in between.  I
