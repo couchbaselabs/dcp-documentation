@@ -1,14 +1,14 @@
 # Unified Protocol for Replication (UPR)
  
  * status: PROPOSAL / DRAFT
- * latest: https://github.com/couchbaselabs/cbupr/blob/master/spec.md
+ * latest: <https://github.com/couchbaselabs/cbupr/blob/master/spec.md>
 
 ## Summary
 
 Couchbase Unified Protocol for Replication (UPR or "upper") is the
 proposed replication networking protocol for Couchbase "2.next" It
 addresses replication stream restartability.
-
+ 
 UPR is an application of the existing TAP protocol, adding new message
 types and parameters, plus some additional required behavior by clients
 and servers.
