@@ -129,10 +129,10 @@ outgoing changes streams.
 
 Replicas *must* remember the last snapshot marker they have seen.
 
-When reconnecting after a failover clients *must* roll back onto a
-snapshot marker that it received before the sequence the new master took
-over at and therefore need to keep some history of received snapshot
-markers.
+When reconnecting after a failover clients *must* roll back to a
+sequence that is equal to or less than both the latest snaphost seen by
+that client, and the latest snapshot seen by the replica/new master
+(which is passed to the client during handshake.)
 
 #### Partition Failover Record
 
@@ -183,12 +183,10 @@ partition, the steps are:
     message.
 
     Otherwise, the server will look at the first entry in the failover
-    log after the one the client sent, and send that sequence to the client.
-
-    The client must find a snapshot marker it received *before* that
-    sequence. It can then rollback to a point at or before the sequence
-    at which it received that marker. If no such marker exists, the
-    client must restart from scratch.
+    log after the one the client sent, and send that sequence to the client  
+    The client must roll back to a sequence that is equal to or less
+    than both this sequence *and* the sequence of the most recent
+    snapshot it has seen.
 
     If the failover ID the client sent is not present, it sends that
     message with sequence 0, the client has to start from scratch.
