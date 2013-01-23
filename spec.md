@@ -1,53 +1,39 @@
 # Unified Protocol for Replication (UPR)
-
-* status: PROPOSAL / DRAFT
-* latest: https://github.com/couchbaselabs/cbupr/blob/master/spec.md
-
-## Table of contents
-
-* Summary
-* Motivation
-* Previous writeups / proposals / related links
-* Terminology
-    * Partition == VBucket
-    * Logical objects / properties
-* Basic scenarios
-    * Connection by a replica
-    * Reconnection by a replica
-    * Master server restarts
-    * Master server restarts with slow persistence
-    * Failover
-    * Rebalance
-* Additional concepts
-* Interesting scenarios
-* Conclusion & next steps
-* TODO / followup / feedback
-* Document version history
+ 
+ * status: PROPOSAL / DRAFT
+ * latest: https://github.com/couchbaselabs/cbupr/blob/master/spec.md
 
 ## Summary
 
-Couchbase Unified Protocol for Replication (UPR or “upper”) is the
-proposed replication networking protocol for Couchbase “2.next”.  It
+Couchbase Unified Protocol for Replication (UPR or "upper") is the
+proposed replication networking protocol for Couchbase "2.next" It
 addresses replication stream restartability.
+
+UPR is an application of the existing TAP protocol, adding new message
+types and parameters, plus some additional required behavior by clients
+and servers.
 
 ## Motivation
 
-Many upcoming features will require restartable, incremental data
-replication.  For example...
+UPR will provide restartable, incremental data replication, facilitating
+things like:
 
-* 1. Indexing, especially distributed indexing.
-* 2. Incremental backup.
-* 3. Intra-cluster replication (e.g., fewer backfills).
-* 4. Inter-cluster replication (e.g., higher performance XDCR)
-* 5. Integration with outside datastores and indexes (OLAP, Hadoop, ElasticSearch, ETL software, etc).
-* 6. Persistence can also be logically “modeled” using the concepts of replication.
+ * Indexing, especially distributed indexing.
+ * Incremental backup.
+ * Intra-cluster replication (w/ fewer backfills)
+ * Inter-cluster replication (XDCR)
+ * Integration with other data systems (Hadoop, ElasticSearch, other
+   OLAP and ETL software.)
+ * Persistence (even though persistence may not be an UPR consumer, it
+   will be helpful to think of it as an UPR conforming replica, as it
+   has to play by pretty much all of the same rules)
 
 UPR addresses these multiple replication needs with a single, unified,
 synchronization model and networking protocol.
 
 The existing TAP checkpoint protocol (Couchbase 1.8.x and 2.0.0) is
-insufficient because checkpoints are ephemeral (does not handle
-clients that have been disconnected a long time),
+insufficient because checkpoints are ephemeral (does not handle clients
+that have been disconnected a long time),
 
 The existing XDCR protocol (Couchbase 2.0.0, HTTP/REST-based) is also
 insufficient for performance reasons.
@@ -61,32 +47,38 @@ orchestrators, tools, 3rd party integrations, test suites, etc.
 Protocol changes will also be via “change controlled” updates to this
 spec so that teams can work without ambiguity.
 
-## Previous writeups / proposals / related links
+## Previous writeups, proposals, and other related links
 
-* 1. http://hub.internal.couchbase.com/confluence/display/PM/3.0+-+Indexing+and+Querying+links
-* 2. http://hub.internal.couchbase.com/confluence/display/cbeng/Checkpointing+and+Incremental+Replication+Through+TAP
-* 3. [Insert pointers to Dustin’s writeups here.]
-* 4. [Insert pointers to Aaron’s writeups here.]
+ * [Wiki: Indexing and Querying links][iql]
+ * [Wiki: Checkpointing and Incremental Replication Through
+    TAP][tapcheck]
+ * [Indexing Performance (Dustin)][indexingperf]
+ * [TAP2013 (Aaron)][tap2013aaron]
+
+[iql]: http://hub.internal.couchbase.com/confluence/display/PM/3.0+-+Indexing+and+Querying+links
+[tapcheck]: http://hub.internal.couchbase.com/confluence/display/cbeng/Checkpointing+and+Incremental+Replication+Through+TAP
+[indexingperf]: http://cbugg.hq.couchbase.com/api/bug/bug-128/attachments/att-bug-128-FljPEvAB/indexing.pdf
+[tap2013aaron]: http://drop.crate.im/tap2013.html
 
 ## Terminology
 
 ### Partition == VBucket
 
-In this document, “partition” and “vbucket” are synonyms, where we
-favor the word “partition” for less confusion to newcomers.  So, a
-bucket has 1024 partitions.
+In this document, "partition" and "vbucket" are synonyms, where we favor
+the word "partition" for less confusion to newcomers.  So, a bucket has
+1024 partitions.
 
 ### Logical objects / properties
 
-The following are important logical “objects” or concepts in the
-protocol.  Real client or server implementations might not use these
+The following are important logical "objects" or concepts in the
+protocol. Real client or server implementations might not use these
 names or have a 1-for-1 physical representation of these concepts.
 
 #### Bucket
 
 A Bucket has properties of:
 
-* Bucket Name (like “default” or “product-catalog”).
+* Bucket Name (like "default" or "product-catalog").
 * Bucket Version (new for UPR).
 * A Bucket also has 1024 Partitions.
 
@@ -96,478 +88,168 @@ A Partition has properties of:
 
 * Partition Id (0 to 1023).
 * Partition State (active, replica, pending, or dead).
-* Partition Takeover History (new for UPR).
-    * This is a sequence of Partition Takeover Records.
-    * A Partition Takeover Record == active Node Id + Sequence Number.
-* A Partition also has a logical Base Data Set.
-* A Partition also has a logical Changes Stream.
-
-#### Node Id
-
-A Node Id is a “Host:Port”.
+* Partition Failover History (new for UPR).
+    * This is a sequence of Partition Failover Records.
 
 #### Sequence Number
 
-A Sequence Number is a 64-bit unsigned number starting from 0 and is
-used to identify Mutations, Safe Messages, Partition Takeover Records,
-etc.
+A sequence number is a 48-bit unsigned number starting from 0 and is
+used to identify and order mutations. Other messages will be marked by a
+sequence number, but will not get their -own- sequence numbers. They
+will have the sequence number of the most recent mutation at the time of
+the relevant event.
 
 Unlike in Couchbase 2.0.0 where Sequence Numbers are updated at
 persistence flushing time by the Couchstore library, in UPR the
 Sequence Numbers should be incremented or assigned immediately at
 mutation request processing time (e.g., incremented in-memory).
 
-[???? Is a Sequence Number == CAS number?  Some say for XDCR they
-might be !=, but would be nice to unify them.  If the CAS value is not
-necessarily the same across clusters, then we can possibly unify
-Sequence Number and CAS]
-
-#### Base Data Set
-
-A Base Data Set is a logical, starting set of distinct keys and their
-associated values.  For example, after you fully, deeply compact a
-Partition (which includes purging deletion tombstones) and are left
-with a set of remaining, live key-values (no more deletion and
-mutation history), you have a Base Data Set.
-
 #### Changes Stream
 
-A Changes Stream is a logical sequence of Mutations and Partition
-Takeover Records, ordered by their Sequence Number.  A Base Data Set
-plus Changes Stream should fully, but not necessarily compactly,
-describe the latest key-value data of a Partition. A Changes Stream
-might also have ephemeral (not necessarily repeatable) Safe Messages
-interspersed in it.
+A changes stream is a the sequence of messages sent by an UPR server
+to an UPR client. It is mostly key-value item mutations, but will also
+contain other message types.
 
 #### Mutation
 
 A Mutation is a key-value create/update/delete.
 
-#### Safe Message
-
-A Safe Message includes a Sequence Number.
-
-A Safe Message, when sent from a master to a client, says "I, the
-master, can guarantee to you, the client, that before Sequence Number
-X there are no `holes' in the data you've seen”.  That is, the client
-has been sent at least one version of all keys that have existed at X
-or before.  The client can use the Safe Message’s sequence number X to
-establish a rollback point in whatever manner it wants.  Without a Safe
-Message it would not be possible for clients to determine a safe
-message to roll back to, because it could never be sure it didn't have
-holes in its data.  Related to Safe Message promises, the master may
-no longer de-duplicate mutations older than the Safe Message’s
-sequence number since de-duplication would introduce holes.
-
-A Safe Message, when sent from a client to a master, says “I, the
-client, am okay with you throwing away data (e.g., purging deletion
-tombstones) before this sequence number Y, because I have either seen
-them or am confident I don't need to see them later.”
-
-A master does not necessarily need to persist the Safe Messages that
-it sends to clients, so a “replay” of the Changes Stream might have
-different Safe Messages.
-
-A client also does not necessarily need to persist any or all of the
-Safe Messages that it receives or to prepare its own rollback’able
-points in its persistent storage, at the risk of having its
-reconnected streams restarting from zero.
-
-#### Partition Takeover Record
-
-A Partition Takeover Record is a record of a server becoming the
-master for a partition.  A restarted master is also recorded with its
-own Partition Takeover Record, as that's treated as an edge case of a
-server (re-)becoming the master.
-
-The properties of a Partition Takeover Record include...
-
-* A Sequence Number.
-* The active Node Id that took over the Partition.
-
-#### Partition Takeover History
-
-A Partition Takeover History is a sequence of Partition Takeover
-Records.  For example...
-
-    A:14, B:24, C:201
-
-That would read as node A was the master/active server for the
-partition at sequence number 14.  Then node B took over as
-active/master at sequence number 24, and node C took over as
-active/master at sequence number 201.
-
-#### Client Registry
-
-A set of identifiers of clients (each client provides its own unique
-identifier) tracked by the master, and replicated to interested
-replicas (usually, the replicas that can takeover for a master).  It
-is used to help the master manage deletion tombstone purging.
-
-[???? This just popped up 2013/01/18 - do we actually need this
-concept / optimization?]
-
-### Example conventions
-
-Examples in this document follow these conventions:
-
-* numbers are Sequence Numbers.
-* “A”, “B”, “C” are Node Id’s.
-* “X”, “Y”, “Z” are Node Id’s of machines from a different, remote “east coast” cluster.
-* “R” prefix before a number means a rollback’able point (e.g. R91)
-* “m” prefix before a number means a Mutation (e.g., m321).
-* “n” prefix before a number means a Mutation from the east coast cluster (e.g., n123).
-* “s” prefix before a number means a Safe Message (e.g., s17).
-* “t” prefix before a number means a Safe Message from the east coast cluster (e.g., t31).
-* CapitalLetter:number means a Partition Takeover Record (e.g, A:16).
-
-For example, here’s the changes stream of a partition...
-
-    A:14, m15, m16, m17, m18, s18, m19, m20
-
-That would read in English as node A took over active/master ownership
-of the partition at sequence number 14.  Then, there were some
-mutations: 15, 16, 17, 18.  Then, there was a safe message at sequence
-number 18.  Then, more mutations: 19, 20.
-
-## Basic scenarios
-
-Readers aware of DVCS systems like git may find basic scenario
-handling to be familiar.
-
-### Connection by a replica
-
-When a replica makes a connection (“⇐”) to a master server in order to
-replicate a partition (whether the first-time or not), the replica
-provides its partition takeover history and rollback'able points as
-part of its UPR/TAP-Connect request.  For the first time, those
-parameters are empty...
-
-    ⇐ Partition Takeover History: (none) and Rollback’able To: (none)
-
-The master will determine that there are no conflicts and no replica
-rewinding in this easy case.  So, the master next streams its
-partition takeover history, its base data set and then its changes
-stream to the replica (“⇒”).  For example...
-
-    ⇒ A:14, m15, m16, m17, m18, s18, m19, m20, m21, s21, m22, m23
-
-The replica persists what it receives, and perhaps handles the Safe
-Message points of s18 and s21 by snapshot’ing or recording rollback
-information into its persistence storage at those times (e.g., R18 and
-R21), by replica-specific means.
-
-### Reconnection by a replica
-
-If the replica exits, restarts and reconnects, it might not have
-persisted everything that the master had sent (e.g., replica process
-crashed).  For example, the restarted replica might be missing
-mutation m23...
-
-    replica state: A:14, m15, m16, m17, m18, R18, m19, m20, m21, R21, m22
-
-Then the replica would reconnect using these parameters, which mean “I
-think A was the master at sequence number 14, and I can rollback to
-either sequence numbers 18 or 21”...
-
-    ⇐ Partition Takeover History: A:14 and Rollback’able To: 18, 21
-
-Or, the replica might be missing even more records (missing safe
-message / rollback’able point at 21)...
-
-    replica state: A:14, m15, m16, m17, m18, R18, m19
-
-...and the replica would instead reconnect with...
-
-    ⇐ Partition Takeover History: A:14 and Rollback’able To: 18
-
-An even slower replica might only have...
-
-    replica state: A:14, m15, m16
-
-...and might reconnect with...
-
-    ⇐ Partition Takeover History: A:14 and Rollback’able To: (none)
-
-In these cases, the master can determine what mutations the replica is
-missing and resend those missing entries.  If the master no longer has
-relevant entries (perhaps it did a deep compaction while the replica
-was disconnected for a very long time), then the replica will have to
-rewind or reset back to zero and the master will have to resend
-everything (the master’s base data set and full changes stream).
-
-### Master server restarts
-
-If the master server restarts, it must generate and persist a new
-partition takeover record in its partition takeover history before it
-services requests, as though it were taking over from itself...
-
-    master state: A:14, m15, m16, m17, m19, m20, m22, m23, A:24
-
-Note: the master did not persist any Safe Message records that it had
-sent out earlier since Safe Messages are ephemeral.
-
-Note: If a master server restarts in quick succession, we might end up
-with multiple partition takeover records, like A:24, A:25, A:26, A:27.
-Some servers may choose to optimize, realizing there are no
-intermediate mutations, and keep just the single, last A:24 record.
-
-### Master server restarts after slow persistence
-
-In the case when persistence on the master was slow and the master
-process crashes, the system must determine that reconnecting replicas
-may need to rewind or rollback some of their mutations.  For example,
-if the master restarts, assigns itself a new partition takeover record
-of A:20’, and also services some new mutations...
-
-    restarted master state: A:14, m15, m16, m17, m19, A:20’, m21’, m22’, m23’
-
-A replica that later reconnects might have a state of “being ahead” of
-the restarted master...
-
-    replica state: A:14, m15, m16, m17, m18, R18, m19, m20, m21, R21, m22
-
-Above, the replica’s m20, m21, m22 records have diverged from the
-restarted master.  The replica reconnects to the restarted master
-with...
-
-    ⇐ Partition Takeover History: A:14 and Rollback’able To: 18, 21
-
-The system can determine that the replica has diverged and that the
-replica would need to rewind or rollback to m18 (their shared history
-point) and have the master replay from m19 onwards (thereby sending
-m19, A:20’, m21’, m22’, m23’ and onwards to the replica).
-
-Note in this example that m19 is resent to the replica, which is safe,
-but is needed to meet the replica’s claimed rollback’able points.
-
-[???? Who determines divergence?  The master or the replica?  If it’s
-the replica, then the replica would have more freedom to choose what
-to do but there’s perhaps more chance for bugs on repeated divergence
-implementation logic.]
-
-### Failover
-
-If the master server dies and a different server B (a different
-replica) becomes the new master, server B might also have been behind
-compared to other replicas.  As soon as server B becomes the
-active/master for the partition, following the same protocol rules, it
-must generate and persist a new partition takeover record in its
-partition takeover history before it services requests...
-
-    master B state: A:14, m15, m16, m17, m18, s18, m19, B:20
-
-As it services requests, master B will get new entries in its changes
-stream...
-
-    master B state: A:14, m15, m16, m17, m18, s18, m19, B:20, m21’’, m22’’, m23’’, s23’’, m24’’
-
-When a replica that has this state...
-
-    replica state: A:14, m15, m16, m17, m18, R18, m19, m20, m21, R21, m22
-
-...connects to the new master B...
-
-    ⇐ Partition Takeover History: A:14 and Rollback’able To: 18, 21
-
-...the system can determine that the replica has diverged from the new
-master B, and the replica has to rollback to the shared point of m18
-and have the new entries streamed (m19, B:20, m21’’, m22’’, m23’’,
-s23’’, m24’’ and onwards) to the rolled-back replica.
-
-As a very rough analogy to DVCS (e.g., git), a partition takeover
-record is kind of like the start of a branch in the revision history.
-
-### Rebalance
-
-A rebalance, which is a controlled partition takeover, would also have
-the new master immediately assign a new partition takeover record,
-thereby following the scenario similar to failover.  In general,
-whenever a partition is switched to active state, it should be
-assigned a new partition takeover record (with its own assigned
-sequence number).
-
-## Additional concepts
-
-### Bucket versions
-
-Every bucket will have a version. These bucket version identifiers
-must be unique, especially as buckets are created and (especially)
-re-created.
-
-For example, after taking an incremental backup, you might delete and
-recreate the “default” bucket.  The next incremental backup process
-should be able to detect that bucket “default” (0) is not the same as
-bucket “default” (1), via their different bucket versions.
-
-## UPR is based on TAP protocol, not REST/HTTP
-
-UPR is an application of the TAP protocol, introducing new
-sub-commands and parameters into TAP’s existing protocol framing.  TAP
-protocol framing itself is not expected to change.
-
-### Partition takeover history is replicated
-
-As a partition is reassigned to a new master, it gathers more and more
-partition version history.  For example, partition 23 might have this
-takeover history: [A:14, B:21, C:71, A:117].  This partition takeover
-history information is replicated to replicas.
-
-Partition takeover history may eventually be pruned, and the pruned
-takeover history must be replicated to interested replicas.
-
-### De-duplication occurs for the latest, mutations
-
-An important feature of Couchbase is to provide de-duplication of
-recent mutations of the same hot keys.  In UPR, this can only happen
-for mutations that are newer than the latest Safe Message that a
-master has sent.
-
-### Deep compaction
-
-Eventually, there will be a long sequence of mutations in a Changes
-Stream.  To reclaim space, a deep compaction (compaction and deletion
-tombstone purging) can be performed on the oldest section of the
-Changes Stream.  After such a “deep compaction”, you’re left with
-just the set of active keys (and their associated values).  That is,
-you’re left with a new Base Data Set.
-
-### Clients send Safe Messages back to master
-
-To help track which part of a Changes Stream can be safely “deeply
-compacted”, clients should occasionally send Safe Messages back to the
-master.
-
-[???? Need more info here.]
-
-### Replicas should support rollbacks for efficiency
-
-If a replica (like a Hadoop integration) disconnects, a lot can happen
-while it’s disconnected.  If the replica cannot support rewinding /
-rollback, or has been disconnected so long that the master server has
-compacted/purged older mutation history, then a full dump (starting
-from zero) is needed.
-
-Replicas that support MVCC and rollback to any past point in time
-would have the easiest implementation of this.
-
-Incremental backup might give the option to users to just keep
-blithely rolling forward with “just give me your best effort
-incremental delta, even if there’s a gap or inconsistency”, because
-the user would rather backup at least some inconsistent recent data
-rather than nothing.
-
-## Interesting scenarios
-
-Interesting cases to consider are listed next.
-
-### T1 - Deduplication.
-
-### T2 - Failover.
-
-### T3 - Failback.
-
-### T4 - Master server restarts.
-
-### T5 - Replica server restarts.
-
-### T6 - Replica reconnects after a long absence.
-
-### T7 - Master has slow persistence and dies.
-
-### T8 - Replica has slow persistence and dies.
-
-### T9 - Replica does not know how to rewind.
-
-Especially, consider XDCR.
-
-### T10 - Rebalance (smooth takeover).
-
-### T11 - Multiple failovers and failbacks while replica was disconnected.
-
-### T12 - Preserving causality (“happens before”).
-
-### T13 - Pulling plugs.
-
-This was called chaos monkey on the whiteboard.
-
-### T14 - Total datacenter reboot.
-
-### T15 - Total datacenter reload from backups.
-
-### T15.1 - Partial restore from backups.
-
-### T16 - Deletions.
-
-### T17 - Expirations.
-
-### T18 - Compaction.
-
-### T19 - Deletion tombstone purging.
-
-### T20 - Multi-master XDCR.
-
-### T21 - Heterogeneous / mixed versions during online upgrade of a cluster (also with XDCR).
-
-### T22 - Clocks are skewed.
-
-### T23 - Offline upgrade of a cluster (also with XDCR).
-
-### T24 - Cluster and/or server recovery by copying files to the right places.
-
-At the node level versus full cluster level copying.
-
-### T25 - IP address changes.
-
-### T26 - Works with development environments (cluster_run).
-
-### T27 - Bucket deletions & re-creations while replica was disconnected.
-
-### T28 - RAM consumption when client is slow or disconnected.
-
-### T29 - OBSERVE.
-
-### T30 - Immediately consistent indexes.
-
-### T31 - Chain and star replication topologies and switching between them.
-
-The sequence numbers can be used to incremental move data from the
-most up-to-date replica to the replica chose to be the new master?
-
-### T32 - Disk corruption.
-
-## Conclusion & next steps
-
-Next steps are to get this reviewed, feedback’ed, improved, approved and built.
-
-## TODO / followup / feedback
-
-From alk... In addition to that, urp source can _always_ drop current
-safe message/checkpoint and start sending mutations towards more fresh
-one. Where I understand shapshot/checkpoint as "there cannot be any
-'unclosed' holes".  Unless there are deletion purges in between.  I
-can formally prove that.  And in fact, combined to idea of associating
-_existing_ tap checkpoints with couch seq numbers we can _fix existing
-tap_ to be resumable from any point in time, provided deletion purging
-is handled.
-
-From aaron... Last Safe Seq doesn't replace snapshotting. Last Safe
-Seq is part of a proposed way of dealing with deletion purging, it's
-an UPR Client -> Provider message that means "I am okay with you
-throwing away data (deletes) before this sequence, because I have
-either seen them or am confident I don't need to". It is not tied to
-snapshots in any way really, just sequence numbers.
-
-My conception of (non-persistent) snapshots is:
-
-A Snapshot, to a client, is an UPR Provider -> Client message that
-says "I can guarantee you that before sequence X there are no `holes'
-in the data you've seen." (That is, the client has seen at least one
-version of all keys that have existed at X or before) which the client
-can use to establish a rollback point in whatever manner it
-wants. Without snapshots it would not be possible for clients to
-establish a safe message to roll back to, because it could never be
-sure it didn't have holes in its data.
+#### Snapshot markers
+
+A snapshot marker, is a message tied to a sequence number, that when
+sent from a master to a client conveys a guarantee that that client has
+been sent at least one version of all keys that have existed at that
+sequence or before. The client effectively has seen a snapshot of the
+data in the partition at that sequence.
+
+Replicas are *required* to remember at least the most recent snapshot
+marker they have seen. Other clients can take these messages as "hints"
+that it would be a good idea to be able to roll back to this point,
+since, if they reconnect after a failover, the point they will be asked
+to roll back to will likely land on a snapshot marker. This is *not* a
+guarantee, as not every client will see every snapshot marker.
+
+#### Partition Failover Record
+
+A Partition Failover Record is a record of a server becoming the
+master for a partition in a situation where it cannot guarantee it
+was entirely caught up with the previous master.
+
+A restarted master, if it did not shut down cleanly, is also recorded
+with its own Partition Failover Record, as this can be thought of as if
+the server's disk storage is a replica that was behind and it is being
+failed over to.
+
+If it can be determined that a takeover happened cleanly (the new master
+was caught up with the old), the new master *should not* create a
+Partition Failover Record.
+
+A failover record consists of the sequence number of *the last snapshot
+marker* the node taking over had seen for that partition, and a UUID to
+identify the record.
+
+
+#### Partition Failover Log
+
+A Partition Failover Log is a sequence of Partition Failover
+Records. When a replica connects to an upstream UPR server, it will
+request that server's whole failover log, rather than only the ID of the
+final entry. It is likely that this log will be limited to some `N` most
+recent entries. If so, as long as fewer than `N` entries are entered
+into the failover log between a client being disconnected and coming
+back online, it will be able to find a point to roll back to, otherwise
+it will need to start from 0 to ensure consistency.
+
+Note that this does not propagate as cluster wide configuration data,
+but propagates down the replication path. This means paths through
+different replication topologies to have their own failover histories.
+
+### Notation
+
+ * `<=` signals client to server messages
+ * `=>` signals server to client messages
+ * License-plate like sequences `'DRF394'` indicate failover IDs
+
+## Handshakes
+
+When a client connects and wants to start receiving changes for a
+partition, the steps are:
+
+ 1. The client sends the partition it wants changes for, and if it has
+    been connected before, the failover ID that was current when it
+    connected last.
+
+ 2. If the failover ID the client sent is the most recent, or it did not
+    send one because it was new, the server sends an "OK, go ahead"
+    message.
+    
+    Otherwise, the server will look at the first entry in the failover
+    log after the one the client sent, and request the client roll back
+    at least to that sequence. If the failover ID the client sent is not
+    present, it sends that message with sequence 0, the client has to
+    start from scratch.
+
+    Both the "OK" and "Sorry, please rollback" message are sent with the
+    most recent failover ID, so that the client can remember it, or if
+    the client is a replica, the complete failover history.
+
+ 3. When the client is ready to start processing changes, the client
+    tells the server the sequence number to start sending changes from. 
+    This message should also be sent with the failover ID received in
+    `2` to prevent races where rebalances happen during the handshake.
+
+### Connection handshake by a brand new client
+
+    <= I want to operate on partition 5, I'm a brand new client
+    => Alright, the last failover on partition 5 was 'DRF394', go ahead
+    <= Got 'DRF394', and I'm ready to start receiving changes on partition 5 from sequence 0
+    # ... Change stream follows ...
+  
+### Connection handshake by a resuming client, no failovers
+
+Assuming the client had previously seen up to sequence 434:
+
+    <= I want to operate on partition 5, last failover I saw was 'DRF394'
+    => Alright, the last failover on partition 5 was 'DRF394', go ahead
+    <= Got 'DRF394', and I'm ready to start receiving changes on partition 5 from sequence 434
+    # ... Change stream follows ...
+
+### Connection handshake by a resuming client, across failovers
+
+Assuming the client had previously seen up to sequence 434, and the
+first failover following `'DRF394'` was `'QER053'` at sequence 426:
+
+    <= I want to operate on partition 5, last failover I saw was 'DRF394'
+    => Sorry, the last failover on partition 5 was 'QER053'.
+       You need to roll back to sequence 426 or before.
+    # The client is only capable of rolling back to sequence 418,
+    # and does so. The client also now remembers the new last-takover ID
+    # 'QER053'
+    <= Got 'QER053', and I'm ready to start receiving changes on partition 5 from sequence 418
+    # ... Change stream follows ...
+
+###  Handshakes when client is a Replica
+
+When the client is a replica, handshakes should basically operate the
+same as other client handshakes, except they should indicate that they
+are replicas in the initial "Hello" message, which will cause that the
+"OK, Go ahead", or "Sorry, Rollback" messages that normally carry the
+most recent failover ID to contain the entire failover log.
+
+### Additional notes
+
+ * Deletion purging will require us to keep track of clients and
+   sequences they have safely seen (are okay with deleting). As part of
+   this we *could* keep track of their last seen failover ID/sequence to
+   allow a simplified handshake.
+
+ * "Hello" and "OK/Sorry" messages are *stateless*. That is, a client
+   should be able to send another "Hello" message and get back another
+   "OK/Sorry" response, to enable clients to try different failover IDs.
+
+ * The handshake described here is all for a single partition. It is
+   probably a good idea to extend these messages to work over multiple
+   partitions at once to reduce chattiness.
 
 ## Document version history
 
@@ -578,3 +260,7 @@ sure it didn't have holes in its data.
   messages, replacing the older “snapshot” concept.  Shared with
   Dustin, Marty, Filipe, Damien, Alk, Chiyoung, Aaron, Yaseen for
   review.
+* 0.4 - Aaron prep doc for discussion. Removed deletion purging related
+  material as it is a separate, albeit related, animal. "Safe Message
+  (Server to Client)" became "Snapshot Marker." "Takover History/Log"
+  became "Failover History/Log."
