@@ -127,14 +127,12 @@ mutation arrives that obsoletes another one (it is an update or delete
 of an existing key), the obsoleted mutation *may* be omitted from
 outgoing changes streams.
 
-Replicas *must* remember at least the most recent snapshot marker they
-have seen.
+Replicas *must* remember the last snapshot marker they have seen.
 
-Other clients may take these messages as "hints" that it would be a good
-idea to be able to roll back to this point, since if they reconnect
-after a failover, the point they will be asked to roll back to will
-likely land on a snapshot marker. This is not guaranteed, as not every
-client will see every snapshot marker.
+When reconnecting after a failover clients *must* roll back onto a
+snapshot marker that it received before the sequence the new master took
+over at and therefore need to keep some history of received snapshot
+markers.
 
 #### Partition Failover Record
 
@@ -185,10 +183,15 @@ partition, the steps are:
     message.
 
     Otherwise, the server will look at the first entry in the failover
-    log after the one the client sent, and request the client roll back
-    at least to that sequence. If the failover ID the client sent is not
-    present, it sends that message with sequence 0, the client has to
-    start from scratch.
+    log after the one the client sent, and send that sequence to the client.
+
+    The client must find a snapshot marker it received *before* that
+    sequence. It can then rollback to a point at or before the sequence
+    at which it received that marker. If no such marker exists, the
+    client must restart from scratch.
+
+    If the failover ID the client sent is not present, it sends that
+    message with sequence 0, the client has to start from scratch.
 
     Both the "OK" and "Sorry, please roll back" message are sent with the
     most recent failover ID, so that the client can remember it, or if
@@ -221,7 +224,8 @@ doing step 3 to start receiving data.
 
     <- Hello! I'm on partition 5, I'm a brand new client
     -> OK, go ahead. The last failover on partition 5 was 'DRF394'
-    <- Got 'DRF394', and I'm ready to start receiving changes on partition 5 from sequence 0
+    <- Got 'DRF394', and I'm ready to start receiving changes on partition 5
+       from sequence 0
     # ... change stream follows ...
 
 #### Connection handshake by a resuming client, no failovers
@@ -232,15 +236,16 @@ doing step 3 to start receiving data.
 
     <- Hello! I'm on partition 5, last failover I saw was 'DRF394'
     -> OK, go ahead. The last failover on partition 5 was 'DRF394'
-    <- Got 'DRF394', and I'm ready to start receiving changes on partition 5 from sequence 434
+    <- Got 'DRF394', and I'm ready to start receiving changes on partition 5
+       from sequence 434
     # ... change stream follows ...
 
 #### Connection handshake by a resuming client, across failovers
 
  * The client had previously seen up to sequence 434
  * The first failover following `'DRF394'` was `'QER053'` at sequence 426
- * The client cannot roll back *exactly* to 426, but *can* roll back to
-   418
+ * The client's latest received snapshot marker that is before sequence
+   426 is at 418
 
 **Handshake**:
 
@@ -248,8 +253,8 @@ doing step 3 to start receiving data.
     -> Sorry, the last failover on partition 5 was 'QER053'!
        You need to roll back to sequence 426 or before.
     # The client rolls back to sequence 418.
-    <- Got 'QER053', and I'm ready to start receiving changes on partition
-       5 from sequence 418
+    <- Got 'QER053', and I'm ready to start receiving changes on partition 5
+       from sequence 418
     # ... change stream follows ...
 
 ### Additional notes on handshakes
@@ -280,3 +285,4 @@ doing step 3 to start receiving data.
   material as it is a separate, albeit related, animal. "Safe Message
   (Server to Client)" became "Snapshot Marker." "Takover History/Log"
   became "Failover History/Log."
+* 0.4.1 - Aaron forgot important dedup/snapshot problems. Back in now.
