@@ -284,3 +284,4 @@ doing step 3 to start receiving data.
   (Server to Client)" became "Snapshot Marker." "Takover History/Log"
   became "Failover History/Log."
 * 0.4.1 - Aaron forgot important dedup/snapshot problems. Back in now.
+* 0.5 - Post unconference meeting fixed some language about snapshots
