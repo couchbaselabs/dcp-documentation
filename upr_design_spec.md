@@ -134,7 +134,7 @@ Barrier cookies are a way a for a indexer to ensure consistency storage quickly 
 
 ## How clients roll back changes when seeing a new failover ID
 
-1. Each client maintains a ring buffer of recent mutations, and the last complete snapshot seq number it processed for each partition as well as the last failover ID from that snapshot. The ring buffer should be persisted before mutations are applied to persistence, unless the client also has the ability to rollback changes. If 
+1. Each client maintains a ring buffer of recent mutations, and the last complete snapshot seq number it processed for each partition as well as the last failover ID from that snapshot. The ring buffer should be persisted before mutations are applied to persistence, unless the client also has the ability to natively rollback changes. 
 2. A client requests list of failover logs from the server for each partition.
 3. It determine the starting sequence by scanning the for the most recent common failover ID in it's stored failover log, and it takes the smaller of it's own failover entry sequence or server's.
 4. It rolls back it's own changes to the starting sequence number, by requesting the latest document for each higher seq in its ring buffer, and processing it. If the document doesn't exist, it deletes the document from it's state.
