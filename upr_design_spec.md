@@ -127,9 +127,9 @@ Barrier cookies are a way a for a indexer to ensure consistency storage quickly 
 ## How ep-engine tracks barrier cookies
 
 1. For each UPR connection, ep-engine maintains a fifo queue of barrier markers and number of times it's cycled through all the partition.
-2. When ep-engine gets a barrier cookie, it records the number of cycles it's completed and the partition it's currently streaming. This will mark the point after where it should send back the barrier cookie to the client. It places this into the barrier queue. 
+2. When ep-engine gets a barrier cookie, it records the number of cycles it's completed and the partition it's currently streaming. This find the point after where it should send back the barrier cookie to the client. It places this into the barrier queue. 
 3. Every time ep-engine completes a cycle for all partitions, it increments the cycle counter.
-4. After each partition snapshot is completed or skipped it checks the barrier queue to see if it's streamed every partition since the barrier was added. It does this by checking if the number of cycles and the next partition are greater than the barrier marker. If so, it sends the barrier cookie back to the client and pops it out of the queue, unless it's the last one.
+4. After each partition snapshot is completed or skipped it checks the barrier queue to see if it's streamed every partition since the barrier was added. It does this by checking if the number of cycles and the next partition are greater than the barrier marker. If so, it sends the barrier cookie back to the client and pops it out of the queue.
 5. If there are not more mutations to stream, it sends back all barrier cookies.
 
 ## How clients roll back changes when seeing a new failover ID
