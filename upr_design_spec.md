@@ -67,7 +67,7 @@ When a client connects to a server and before it stream a new partition snapshot
 
 ### Client and Ringbuffer
 
-The client is a process that can talk to a server and streaming changes from it. It will have a ring buffer of the latest key mutations to provide a way to rollback changes if it is ahead the of a server after a failover or crash. If the client needs to use a sequence that's lower than the latest sequence it's seen, it will use the ring buffer to undo any changes that might be out of sync with the master before streaming from the common sequence number.
+The client is a process that can talk to a server and streaming changes from it. It will have a ring buffer of the latest key mutations to provide a way to rollback changes if it is ahead the of a server after a failover or crash. The ring buffer size should be configurable. If the client needs to use a sequence that's lower than the latest sequence it's seen, it will use the ring buffer to undo any changes that might be out of sync with the master before streaming from the common sequence number.
 
 ### Barrier Cookies
 
