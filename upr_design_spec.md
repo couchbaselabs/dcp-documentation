@@ -42,7 +42,9 @@ The tree nodes link to immutable data and are ref counted, with each node pointe
 Creating a snapshot is simply incrementing the root once and handing it off to the snapshot user. When all users of that root/snapshot are done, including the write queue manager, the ref count of the root falls to zero and the node is freed, and any child nodes/values it points have their ref count decremented, and if they fall to zero, are also freed. This happens recursively to immediately free any unreferenced subtrees and values.
 
 Possible library we can use, from the LLVM project:
+
 <http://llvm.org/docs/ProgrammersManual.html#llvm-adt-immutableset-h>
+
 <http://llvm.org/docs/doxygen/html/ImmutableSet_8h.html>
 
 ### Immutable Values
