@@ -189,16 +189,16 @@ To detect when a mutation is replicated to a replica node, the master server wil
 
 ## How ns_server performs a partition rebalance
 
-1. ns_server initiates a pending parition on a new node, or selects an existing replica and puts it into the pending state.
+1. ns_server initiates a pending partition on a new node, or selects an existing replica and puts it into the pending state.
 2. If a new replica, an UPR client (either inside ep-engine or external) connects to the master and begins streaming.
-3. Once the replica is caught up the master, or nearly caught up (as decided by the algorithm or heuristic inside ns_server), ns_server tells the master to put it's partition into the dead state, so that it no longer accepts new mutations.
+3. Once the replica is caught up the master, or nearly caught up (as decided by the algorithm or heuristic inside ns_server), ns_server tells the master to put it's partition into the dead state, so that it no longer accepts new mutations. ns_server can monitor how caught up a replica is by asking the master and replica for the current high seq it's seen and/or persisted.
 4. Once all mutations are sent to the replica and persisted without error, (ns_server will montitor this in the same way a client ensures persistance), then ns_server tells the new server to set it's partition state to active, and then tells the master to either delete it's partition or put it into the replica state.
 5. If there is an fatal error or timeout in step 4, ns_server will tell the master to go back into the active state. If not possible, it will perform a failover to another replica.
 
 
 ## How ns_server performs failover
 
-If ns_server detects the master is crashed or unresponsive, it will put a replica in the cluster into the active state and assign it a new failover ID in a single operation.
+If ns_server detects the master is crashed or unresponsive, it can put a replica in the cluster into the active state and assign it a new failover ID in a single operation. It can then initiate a new replica as an UPR client of the master.
 
 ## How UPR stats are tracked
 
