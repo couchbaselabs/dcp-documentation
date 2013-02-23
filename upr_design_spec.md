@@ -202,7 +202,7 @@ If ns_server detects the master is crashed or unresponsive, it can put a replica
 
 ## How UPR stats are tracked
 
-For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are prefixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
+For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are suffixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
 
 ns_server will retrieve all stats for UPR connections, and will parse the stats to discover if they are from a replica, vs a view or backup, etc, by parsing the stat name.
 
