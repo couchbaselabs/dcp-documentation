@@ -29,6 +29,10 @@ This is a single node of a Couchbase installation. It contains an implementation
 
 This is the networked data serving component of Couchbase Server.
 
+### management layer/ns_server
+
+ns_server is the server component responsible for cluster management and deciding which servers are master, replicas and when to rebalance and failover.
+
 ### Couchstore
 
 This is the storage engine component of Couchbase Server. It arranges a record of each document by update sequence ID, a  monotonically increasing value, in a btree. Each document mutation is a assigned a new sequence number, for existing documents in the store, the old sequence value is deleted. This allows servers to quickly scan recent documents and deletions persisted since a particular sequence number, or from zero if wants all changes.
@@ -71,11 +75,11 @@ The client is a process that can talk to a server and streaming changes from it.
 
 ### Barrier Cookies
 
-Barrier cookies are a way a for a indexer to ensure consistency storage quickly and at multiple points in time, so that UPR indexer clients can service multiple concurrent query clients demanding consistent results. UPR clients generate unique IDs and send them to the server, and the server sends them back once all mutations since that point in time have been streamed to the clients.
+Barrier cookies are a way a for a indexer to ensure consistency with storage quickly and at multiple points in time, so that UPR indexer clients can service multiple concurrent query clients demanding consistent results. UPR clients generate unique IDs and send them to the server, and the server sends them back once all mutations since that point in time have been streamed to the client.
 
 # NETWORK INTERFACE DESIGN AND FLOW
 
-## How KV's mutations flow into ep-engine and write queue
+## How KV mutations flow into ep-engine and write queue
 1. A mutation (insert,update,delete) request from an memcached client occurs.
 2. The hash table entry where the item will reside is locked. This might be granualur to the entry itself, or something higher like the whole hashtable.
 3. If a CAS operation, the mutation is either accepted or rejected.
@@ -85,6 +89,29 @@ Barrier cookies are a way a for a indexer to ensure consistency storage quickly 
 7. If a deleted item, the item in the hash table is kept around, and will be until the deletion is persisted.
 8. The hash table partition is unlocked.
 9. The client gets a response that the item was accepted.
+
+## How KV mutations flow into Replicas
+
+When a server owns a replica partition, there is a UPR client feeding it mutations. This can be inside of ep-engine, or an external client feeding it the mutation is order. Once in the replica server, the flow is the same as a master server, with the exception that the mutations are already assigned the sequence update # by the master, and the replica preserves that sequence.
+
+## How front end clients ensure mutations are persisted to disk or replicated.
+
+Clients when performing a mutation can either block until the mutation is persisted, or receive the sequence update number, partition ID and current server failover ID and waits until the server has persisted it.
+
+There can be 3 kinds of blocking of the front end client to ensure persistence:
+
+1. The server blocks on the mutation response until the mutation is durable, by monitoring internally when the persisted sequence number is greater than or equal to assigned sequence number.
+2. The server sends back the high update sequence #, and the client makes a new type of connection, sends the sequence # and partition ID and failover ID, and server blocks until persistence has completed through that sequence.
+3. The server sends back the high update sequence #, and the client polls the server with the sequence #, partition ID and failover ID, and keeps polling until the server has completed persitence through that sequence.
+
+For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possible reperform the mutation to ensure it complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
+
+To detect when a mutation is replicated to a replica node, the master server will return the sequence update number, partition ID and current server failover ID, and the client will connect to a replica and perform the same operation as 2 and 3 above, with the exception it's waiting not for persistance of the sequence #, but the arrival from the master.
+
+
+## How we can get single document ACID
+
+**This is outside the scope of the current implementation.** Assuming we'll never have multiset transactions (which would require distributed transactions), the thing preventing  single document ACID is the lack of Isolation of a single mutation. Mutations in this scheme will still be visible by all other clients before they are durable or replicated, which if there is master failure means updates can be seen by clients and then subsequently lost.
 
 ## How items in the partition write queue flow to couchstore
 
@@ -97,7 +124,7 @@ Barrier cookies are a way a for a indexer to ensure consistency storage quickly 
 ## How UPR clients and ep-engine handshake
 
 1. An UPR client makes a connection.
-2. The UPR client sends the partition numbers for the partitions it wants to stream.
+2. The UPR client sends the partition numbers for the partitions it wants to stream, the allowable states (active, replica, dead, pending), it also sends an identifier for what and who it is in the form of "%what%:%who%". The indentifier is so the server can track stats and differentiate between replica, indexer, xdcr etc in it's stat tracking.
 3. ep-engine then sends the failover log for each partition it owns
 4. For each partition it wishes to stream, the client sends to the server partition number. expected state of active or replica, and latest failover ID and start seq number.
 5. For any partition the server doesn't own, is in the wrong state, or has too high a seq # or the wrong current failover ID, it sends a error to the client. The client is expected to disconnect, reload the client map and start back on step 1.
@@ -151,15 +178,33 @@ Barrier cookies are a way a for a indexer to ensure consistency storage quickly 
 
 ## How servers and replicas record the failover log and add new entries
 
-1. A replica requests the failover log from the server. It rolls back any changes like a normal client if it gets ahead of the master.
+1. A replica (or intermediary UPR client) requests the failover log from the server. It rolls back any changes like a normal client if it gets ahead of the master.
 2. It gets a full snapshot like a normal client.
-3. For each snapshot it receives and persists, it persists the high snapshot seq and the failover log.
+3. For each snapshot it receives and persists, it persists the high snapshot seq into the failover log with the current master's failover ID (the most recent entry).
 2. If there is a smooth handover, it becomes the new master, and it preserves the failover log as is.
-1. If there is a failover to the replica, it generates a new failover ID and pairs it with the last snapshot seq, and adds it to the front of the failover log.
+1. If there is a failover to the replica, ns_server generates a new failover ID and the server pairs it with the last snapshot seq, and adds it to the front of the failover log.
 2. If the new failover sequence is lower than any entries in the failover log, those entries are removed from the log.
 1. It is now ready to serve as master, other replicas can stream changes from it.
 1. As it persist new mutations, it updates the last failover ID with the high seq.
 
+## How ns_server performs a partition rebalance
+
+1. ns_server initiates a pending parition on a new node, or selects an existing replica and puts it into the pending state.
+2. If a new replica, an UPR client (either inside ep-engine or external) connects to the master and begins streaming.
+3. Once the replica is caught up the master, or nearly caught up (as decided by the algorithm or heuristic inside ns_server), ns_server tells the master to put it's partition into the dead state, so that it no longer accepts new mutations.
+4. Once all mutations are sent to the replica and persisted without error, (ns_server will montitor this in the same way a client ensures persistance), then ns_server tells the new server to set it's partition state to active, and then tells the master to either delete it's partition or put it into the replica state.
+5. If there is an fatal error or timeout in step 4, ns_server will tell the master to go back into the active state. If not possible, it will perform a failover to another replica.
+
+
+## How ns_server performs failover
+
+If ns_server detects the master is crashed or unresponsive, it will put a replica in the cluster into the active state and assign it a new failover ID in a single operation.
+
+## How UPR stats are tracked
+
+For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are prefixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
+
+ns_server will retrieve all stats for UPR connections, and will parse the stats to discover if they are from a replica, vs a view or backup, etc, by parsing the stat name.
 
 ## How to maintain backwards compatibility with existing TAP replicas/masters.
 
