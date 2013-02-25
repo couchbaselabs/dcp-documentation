@@ -200,6 +200,24 @@ To detect when a mutation is replicated to a replica node, the master server wil
 
 If ns_server detects the master is crashed or unresponsive, it can put a replica in the cluster into the active state and assign it a new failover ID in a single operation. It can then initiate a new replica as an UPR client of the master.
 
+## How ns_server and ep-engine guarantee ordering of partition state transistions
+
+There is a rare, but possible, problem of misordering of partition transition changes and other partition states.
+
+If ns_server attempts to set a partition to another state, but loses the connection with ep-engine before getting back a success response, it's possible that it will send another state transition command which will be processed out of order in ep-engine, putting the partition in the incorrect state.
+
+This is because ep-engine can still receive the first command after the second, because of non-deterministic multi-threading and the possibility of the message from the broken connection still residing in network buffers.
+
+A simple fix is to use a CAS mechanism when modifying partition state. There will be a single CAS for a bucket.
+
+1. On startup, ep-engine will generate a CAS and start partitions in the previous state persisted, with front-end client connections turned off.
+2. ns_server will poll to wait until ep-engine has warmed up all partitions, and to discover the CAS.
+3. ns_server will send any new state/commands using the CAS, to set appropriate state and turn on front-end client connections.
+4. If the CAS matches and the command and states are accepted, ep-engine will respond with success and new CAS, which will be noted by ns_server.
+5. If the CAS doesn't match or the command has an error, ep-engine will return the appropriate error.
+6. If a CAS error, ep-engine will use the correct CAS id returned in the error and retry.
+7. If another error, ns_server will log and possibly take another action, like a retry.
+
 ## How UPR stats are tracked
 
 For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are suffixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
