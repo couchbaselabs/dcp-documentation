@@ -92,7 +92,9 @@ Barrier cookies are a way a for a indexer to ensure consistency with storage qui
 
 ## How KV mutations flow into Replicas
 
-When a server owns a replica partition, there is a UPR client feeding it mutations. This can be inside of ep-engine, or an external client feeding it the mutation is order. Once in the replica server, the flow is the same as a master server, with the exception that the mutations are already assigned the sequence update # by the master, and the replica preserves that sequence.
+When a server owns a replica partition, there is a UPR client feeding it mutations. This can be inside of ep-engine, or an external client feeding it the mutations in order. Once in the replica server, the flow is the same as a master server, with the exception that the mutations are already assigned the sequence update # by the master, and the replica preserves that sequence.
+
+It is also important that the replica persist the mutation in sequence order. This is already guaranteed as long as items are sent in sequence order, and the replica persists everything in the partition write queue in a single commit.
 
 ## How front end clients ensure mutations are persisted to disk or replicated.
 
