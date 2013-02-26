@@ -108,12 +108,14 @@ There can be 3 kinds of blocking of the front end client to ensure persistence:
 
 For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possible reperform the mutation to ensure it complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
 
-To detect when a mutation is replicated to a replica node, the master server will return the sequence update number, partition ID and current server failover ID, and the client will connect to a replica and perform the same operation as 2 and 3 above, with the exception it's waiting not for persistance of the sequence #, but the arrival from the master.
+To detect when a mutation is replicated to a replica node, the master server will return the sequence update number, partition ID and current server failover ID, and the client will connect to a replica and can perform the same operations as 2 or 3 above, with the exception it's passed a flag to indicate it's waiting not for persistance of the sequence #, but the arrival from the master. Optionally, it can also wait until the replica persists the item by using the same options as when waiting for persistence on the master.
 
 
 ## How we can get single document ACID
 
-**This is outside the scope of the current implementation.** Assuming we'll never have multiset transactions (which would require distributed transactions), the thing preventing  single document ACID is the lack of Isolation of a single mutation. Mutations in this scheme will still be visible by all other clients before they are durable or replicated, which if there is master failure means updates can be seen by clients and then subsequently lost.
+**This is outside the scope of the current implementation.**
+
+Assuming we'll never have multiset transactions (which would require distributed transactions), the thing preventing  single document ACID is the lack of Isolation of a single mutation. Mutations in this scheme will still be visible by all other clients before they are durable or replicated, which, if there is master failure, means updates can be seen by clients and then subsequently lost.
 
 ## How items in the partition write queue flow to couchstore
 
@@ -217,7 +219,7 @@ A simple fix is to use a CAS mechanism when modifying partition state. There wil
 3. ns_server will send any new state/commands using the CAS, to set appropriate state and turn on front-end client connections.
 4. If the CAS matches and the command and states are accepted, ep-engine will respond with success and new CAS, which will be noted by ns_server.
 5. If the CAS doesn't match or the command has an error, ep-engine will return the appropriate error.
-6. If a CAS error, ep-engine will use the correct CAS id returned in the error and retry.
+6. If a CAS error, ep_epgine will return an error with the correct CAS and ns_server will record the correct CAS and retry.
 7. If another error, ns_server will log and possibly take another action, like a retry.
 
 ## How UPR stats are tracked
@@ -228,6 +230,13 @@ ns_server will retrieve all stats for UPR connections, and will parse the stats 
 
 ## How to maintain backwards compatibility with existing TAP replicas/masters.
 
-TODO: it's possible we can add a client adaptor that converts UPR protocol into 2.0 TAP protocol?
+Comments from Trond:
 
-ADDITIONAL MATERIAL
+From a TAP point of view it shouldn't be hard to make it backwards compatible, because the "old" tap just contains two different methods (with some mutatations like in the vbucket move that the last thing it does is to mark the bucket as dead and disconnect the client etc).: 
+
+* Start give me live mutations
+* Send me everything you got and keep sending me stuff.
+
+It is the _client_ that dictates the method to use (and this is instantiated by ns_server, so it knows the versions being used on both ends and may start the transfer with the appropriate flag). 
+
+In the first message sent to the server we need to add a new TAP FLAG indicating that it want to use UPR (in future versions we may want to disconnect clients who don't set this flag when we no longer want to support the old one). We may then either use the "engine-specific" parts of the "old" tap messages, or use the TAP_OPAQUE message type to transfer additional information.
