@@ -573,7 +573,7 @@ Master server A dies/becomes unresponsive. It's removed from the cluster.
 
 Replica B becomes Master server B. It generates a new entry in the failover log, noting the high sequence of the last complete snapshot it persisted.
 
-![](FailoverImages/Canvas%207.png)
+![](FailoverImages/Canvas%208.png)
 
 ## Replicas recognize new master
 
