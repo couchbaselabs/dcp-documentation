@@ -517,7 +517,7 @@ It is the _client_ that dictates the method to use (and this is instantiated by 
 
 In the first message sent to the server we need to add a new TAP FLAG indicating that it want to use UPR (in future versions we may want to disconnect clients who don't set this flag when we no longer want to support the old one). We may then either use the "engine-specific" parts of the "old" tap messages, or use the TAP_OPAQUE message type to transfer additional information.
 
-# Examples of a UPR in action
+# Example of UPR in action
 
 Here is a three node cluster with replica failovers and new nodes being added.
 
