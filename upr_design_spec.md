@@ -610,5 +610,3 @@ It applys to its storage the masters version of any documents it couldn't repair
 Both server D and server A continue to stream in mutations, continuing operations as normal.
 
 ![](FailoverImages/Canvas%2013.png)
-
-<img src="FailoverImages/Canvas%2013.png">
