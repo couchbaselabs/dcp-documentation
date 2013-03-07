@@ -220,7 +220,7 @@ Before we compare we add some special values to the tables to make the algorithm
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -242,7 +242,7 @@ No common ancestor:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -265,7 +265,7 @@ No common ancestor:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -288,7 +288,7 @@ No common ancestor:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -315,7 +315,7 @@ No common ancestor:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -342,7 +342,7 @@ No common ancestor:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -369,7 +369,7 @@ No common ancestor:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -392,7 +392,7 @@ Because the last snapshot we saw, `00000000` at 6, is less than the failover ent
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<tr><th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -421,7 +421,7 @@ Because the last snapshot we saw, `00000000` at 6, is less than the failover ent
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
@@ -448,7 +448,7 @@ No common ancestor, must rollback everything:
 	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
 </tr>
 <tr>
-	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
