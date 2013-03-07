@@ -521,7 +521,7 @@ In the first message sent to the server we need to add a new TAP FLAG indicating
 
 Here is a three node cluster with replica failovers and new nodes being added.
 
-First we have server A as the master of partition 1. In the real world, Server A will be master of many buckets and many of the operations here will be happening with multiple partitions concurrently.
+First we have server A as the master of partition 1. In the real world, Server A will be master of many partitions and most of the operations here will be happening with multiple partitions.
 
 The clients in the example are replicas, so they don't need a ringbuffer to rollback since they already have a built in log of changes with the by_sequence btree.
 
