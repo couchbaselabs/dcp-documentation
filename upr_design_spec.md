@@ -206,6 +206,267 @@ The algorithm below determines that sequence number for any state the master and
 4. If there is a common ancestor in the log, grab next newer entry from both logs compare the sequences. The smaller of the two is the rollback sequence number.
 5. If there is no common ancestor, 0 is the rollback sequence.
 
+## Examples of finding RollbackSeq/StartSeq from the failover logs
+
+Before we compare we add some special values to the tables to make the algorithm work:
+
+`00000000` - Server sentinel, always highest seq of client #
+
+`ffffffff` - Client sentinel, always client last snapshot seq
+
+###First connect, Replica has no log, no snapshot:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>5</td>
+	<td><code>00000000</code></td><td>0</td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td>
+</tr>
+</table>
+
+No common ancestor:
+
+**RollbackSeq/StartSeq is 0**
+
+###No failover, no snapshot, seen through seq 5:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>5</td>
+	<td><code>00000000</code></td><td>0</td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+`cafebabe` common ancestor, take smaller of next higher row seq:
+
+**RollbackSeq/StartSeq is 5**
+
+###No failover, snapshot at 6, seen through seq 7:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>7</td>
+	<td><code>00000000</code></td><td>6</td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+`cafebabe` common ancestor, take smaller of next higher row seq:
+
+**RollbackSeq/StartSeq is 7**
+
+###`deadbeef` master failover occurred at 5, snapshot at 6, seen through seq 7:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>7</td>
+	<td></td><td></td>
+</tr>
+<tr>
+	<td><code>deadbeef</code></td><td>5</td></td>
+	<td><code>00000000</code></td><td>6</td></td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+`cafebabe` common ancestor, take smaller of next higher row seq:
+
+**RollbackSeq/StartSeq is 5**
+
+###`deadbeef` master failover occurred at 8, snapshot at 6, seen through seq 7:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>7</td>
+	<td></td><td></td>
+</tr>
+<tr>
+	<td><code>deadbeef</code></td><td>8</td></td>
+	<td><code>00000000</code></td><td>6</td></td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+`cafebabe` common ancestor, take smaller of next higher row seq:
+
+**RollbackSeq/StartSeq is 6**
+
+###`deadbeef` master failover occurred at 8, client last saw master failover at `ba5eba11` at 7, snapshot at 7, seen through seq 9:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>9</td>
+	<td><code>00000000</code></td><td>7</td>
+</tr>
+<tr>
+	<td><code>deadbeef</code></td><td>8</td></td>
+	<td><code> ba5eba11 </code></td><td>7</td></td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+`cafebabe` common ancestor, take smaller of next higher row seq:
+
+**RollbackSeq/StartSeq is 7**
+
+###`deadbeef` master failover occurred at 8, client last saw master failover at `ba5eba11` at 7, snapshot at 6, seen through seq 9:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>9</td>
+	<td><code>00000000</code></td><td>6</td>
+</tr>
+<tr>
+	<td><code>deadbeef</code></td><td>8</td></td>
+	<td><code> ba5eba11 </code></td><td>7</td></td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+Because the last snapshot we saw, `00000000` at 6, is less than the failover entry `ba5eba11` at 7, we elide the `ba5eba11` entry.
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>9</td>
+	<td></td><td></td>
+</tr>
+<tr>
+	<td><code>deadbeef</code></td><td>8</td></td>
+	<td><code>00000000</code></td><td>6</td></td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+`cafebabe` common ancestor, take smaller of next higher row seq:
+
+**RollbackSeq/StartSeq is 6**
+
+
+
+###`deadbeef` master created when no replica's were available, client last saw master failover at `ba5eba11` at 7, snapshot at 7, seen through seq 9:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>9</td>
+	<td><code>00000000</code></td><td>7</td>
+</tr>
+<tr>
+	<td><code>deadbeef</code></td><td>0</td></td>
+	<td><code> ba5eba11 </code></td><td>7</td></td>
+</tr>
+<tr>
+	<td><code></code></td><td></td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+No common ancestor, must rollback everything:
+
+**RollbackSeq/StartSeq is 0**
+
+### No failover of master, client last saw master failover at `ba5eba11` at 7, snapshot at 7, seen through seq 9:
+<table>
+<tr>
+	<th colspan=2>Master Log</th><th colspan=2>Client Log</th>
+</tr>
+<tr>
+	<td><tr><th>Failover</th><th>At</th>
+	<th>Failover</th><th>At</th>
+</tr>
+<tr>
+	<td><code></code></td><td></td>
+	<td><code>00000000</code></td><td>7</td>
+</tr>
+<tr>
+	<td><code>ffffffff</code></td><td>9</td></td>
+	<td><code>ba5eba11</code></td><td>7</td></td>
+</tr>
+<tr>
+	<td><code>cafebabe</code></td><td>0</td></td>
+	<td><code>cafebabe</code></td><td>0</td></td>
+</tr>
+</table>
+
+**Not possible!** If the replica saw a master with the failover ID after `cafebabe`, it's impossible for the current master to still be at `cafebabe`, since it would have had to not be master, then become master and generate a new failover ID.
+
 ## How ns_server performs a partition rebalance
 
 1. ns_server initiates a pending partition on a new node, or selects an existing replica and puts it into the pending state.
@@ -255,3 +516,97 @@ From a TAP point of view it shouldn't be hard to make it backwards compatible, b
 It is the _client_ that dictates the method to use (and this is instantiated by ns_server, so it knows the versions being used on both ends and may start the transfer with the appropriate flag). 
 
 In the first message sent to the server we need to add a new TAP FLAG indicating that it want to use UPR (in future versions we may want to disconnect clients who don't set this flag when we no longer want to support the old one). We may then either use the "engine-specific" parts of the "old" tap messages, or use the TAP_OPAQUE message type to transfer additional information.
+
+# Examples of a UPR in action
+
+Here is a three node cluster with replica failovers and new nodes being added.
+
+First we have server A as the master of partition 1. In the real world, Server A will be master of many buckets and many of the operations here will be happening with multiple partitions concurrently.
+
+The clients in the example are replicas, so they don't need a ringbuffer to rollback since they already have a built in log of changes with the by_sequence btree.
+
+## Initialization
+
+When the master comes online, it generates a failover GUID and indicates that it came active at seq 0.
+
+There is already a client load on the master.
+
+The replicas pull the master log and apply it to it's storage.
+
+![](FailoverImages/Canvas%201.png)
+
+## Begin streaming mutations
+
+Master server A has set into it's memory 5 mutations, which is has not yet persisted.
+
+Replica B starts streaming from sequence 0. The master snapshots the unpersisted mutations through seq 6, and starts sending them to the replica.
+
+![](FailoverImages/Canvas%202.png)
+
+## Continue streaming mutations
+
+Master server A has set 3 more mutations, it has already persisted all mutations to durable storage, which is has not yet persisted.
+
+Replica B is still streaming from sequence 0 to 5, it has already persisted through sequence 4.
+
+Replica C starts streaming from sequence 0. The master snapshots the unpersisted mutations and starts sending them to the replica.
+
+![](FailoverImages/Canvas%203.png)
+
+## Continue streaming mutations, next snapshot
+
+Master server A has set 3 more mutations, it has already persisted all mutations to durable storage, which is has not yet persisted.
+
+Replica B has finished streaming the snapshot and persisted all mutations. It persists it's last snapshot sequence at 5. Master starts streaming the next snapshot for mutations 6 to 8.
+
+Replica C has finished streaming the snapshot and persisted all mutations. It persists it's last snapshot sequence at 8.
+
+![](FailoverImages/Canvas%205.png)
+
+## Master goes down
+
+Master server A dies/becomes unresponsive. It's removed from the cluster.
+
+![](FailoverImages/Canvas%207.png)
+
+## Replica becomes Master
+
+Replica B becomes Master server B. It generates a new entry in the failover log, noting the high sequence of the last complete snapshot it persisted.
+
+![](FailoverImages/Canvas%207.png)
+
+## Replicas recognize new master
+
+Already the new master has started accepting mutations.
+
+New Replica D gets the log and saves it.
+
+Existing Replica C connects to new master and gets the failover log to compare with it's own.
+
+![](FailoverImages/Canvas%209.png)
+
+## Replica C repairs Master and rolls back to common snapshot sequence
+
+Replica D starts streaming from the master.
+
+Replica C discovers it has mutations possibly not on the master. It will repair the master forfor documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master.
+
+It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
+
+![](FailoverImages/Canvas%2012.png)
+
+## Replica C repairs Master and rolls back to common snapshot sequence
+
+Replica D starts streaming from the master.
+
+Replica C discovers it has mutations possibly not on the master. It will repair the master forfor documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master.
+
+It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
+
+![](FailoverImages/Canvas%2012.png)
+
+## Streaming mutations from new master
+
+Both server D and server A continue to stream in mutations, continuing operations as normal.
+
+![](FailoverImages/Canvas%2013.png)
