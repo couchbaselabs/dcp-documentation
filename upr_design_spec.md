@@ -433,7 +433,7 @@ Because the last snapshot we saw, `00000000` at 6, is less than the failover ent
 	<td><code> ba5eba11 </code></td><td>7</td></td>
 </tr>
 <tr>
-	<td><code></code></td><td></td></td>
+	<td></td><td></td></td>
 	<td><code>cafebabe</code></td><td>0</td></td>
 </tr>
 </table>
@@ -452,7 +452,7 @@ No common ancestor, must rollback everything:
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
-	<td><code></code></td><td></td>
+	<td></td><td></td>
 	<td><code>00000000</code></td><td>7</td>
 </tr>
 <tr>
