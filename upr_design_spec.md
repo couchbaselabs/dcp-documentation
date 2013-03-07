@@ -39,7 +39,7 @@ This is the storage engine component of Couchbase Server. It arranges a record o
 
 ### Write Queue/Immutable Tree
 
-These are per-partition, in-memory immutable tree ordered by update seq that allows for snapshotting unpersisted items by multiple concurrent consumers (clients and flusher), allowing each an independent snaphot while also allowing concurrent updates. The immutable btree will allow for relatively low memory consumption, fast reads and writes, and automatic freeing of unused tree nodes and values.
+These are per-partition, in-memory immutable tree ordered by update seq that allows for snapshotting unpersisted items by multiple concurrent consumers (clients and flusher), allowing each an independent snapshot while also allowing concurrent updates. The immutable btree will allow for relatively low memory consumption, fast reads and writes, and automatic freeing of unused tree nodes and values.
 
 The tree nodes link to immutable data and are ref counted, with each node pointed to by one or more parent snapshots, and the root ref count is incremented by each partition write queue manager. 
 
@@ -59,15 +59,15 @@ When the value is retrieved from the hashtable, the hash table record is locked,
 
 ### Failover Log
 
-The failover log tracks a history of failover events so that UPR clients can find a safe sequence number to stream a new partition snapshot with a guarantee of not losing any changes. A failover event, and new failover ID, is when a master is started and it's unknown if the master was completely in sync with all mutations.
+The failover log tracks a history of failover events so that UPR clients can find a safe sequence number to stream a new partition snapshot with a guarantee of not missing any changes. A failover event is generated when a master is started and it's unknown if the master was completely in sync with all mutations from the previous master. When that happens, a new failover ID is generated and failover sequence of the last successful snapshot.
 
-If the master starts up but doesn't know if a clean shutdown occured, a new failover log entry is generated, even if there there is no failover to a new machine.
+If the master starts up but doesn't know if a clean shutdown occurred, a new failover log entry is generated, even if there there is no failover to a new machine. Semantically this is the same as failing over to a new machine, because we don't know if someone else has seen changes that we never persisted.
 
-The failover log is a list of UUIDs/sequence pairs and each is marker of high sequence number of last complete snapshot the new master persisted from the old master. If a new log entry has a sequence number lower than existing entries, those exsting entries are removed from the log.
+The failover log is a list of UUIDs/sequence pairs and each is marker of high sequence number of last complete snapshot the new master persisted from the old master. If a new log entry has a sequence number lower than existing entries, those existing entries are removed from the log.
 
-Clients will persist the failover log whenever it completely persists a snapshot, as well as the high sequence it most recently persisted.
+Clients can wait to persist the failover log whenever it completely persists a snapshot, as well as the high sequence snapshot it most recently persisted.
 
-When a client connects to a server and before it stream a new partition snapshot, it will compare it's failover log with the server to find highest safe sequence number it can stream. It will compare it's log entries and find the most common entry. It will then use the smaller of the sequence number between it's copy of the failover entry and the server's.
+When a client connects to a server and before it stream a new partition snapshot, it will compare it's failover log with the server to find highest safe sequence number it can stream.
 
 ### Client and Ringbuffer
 
@@ -81,7 +81,7 @@ Barrier cookies are a way a for a indexer to ensure consistency with storage qui
 
 ## How KV mutations flow into ep-engine and write queue
 1. A mutation (insert,update,delete) request from an memcached client occurs.
-2. The hash table entry where the item will reside is locked. This might be granualur to the entry itself, or something higher like the whole hashtable.
+2. The hash table entry where the item will reside is locked. This might be granular to the entry itself, or something higher like the whole hashtable.
 3. If a CAS operation, the mutation is either accepted or rejected.
 4. If the mutation is accepted, the partition seq is incremented and assigned to the mutation.
 5. The mutation is placed into the locked hash table entry with a new seq item, and then locks the write queue.
@@ -104,11 +104,11 @@ There can be 3 kinds of blocking of the front end client to ensure persistence:
 
 1. The server blocks on the mutation response until the mutation is durable, by monitoring internally when the persisted sequence number is greater than or equal to assigned sequence number.
 2. The server sends back the high update sequence #, and the client makes a new type of connection, sends the sequence # and partition ID and failover ID, and server blocks until persistence has completed through that sequence.
-3. The server sends back the high update sequence #, and the client polls the server with the sequence #, partition ID and failover ID, and keeps polling until the server has completed persitence through that sequence.
+3. The server sends back the high update sequence #, and the client polls the server with the sequence #, partition ID and failover ID, and keeps polling until the server has completed persistence through that sequence.
 
-For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possible reperform the mutation to ensure it complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
+For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possible re-perform the mutation to ensure it complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
 
-To detect when a mutation is replicated to a replica node, the master server will return the sequence update number, partition ID and current server failover ID, and the client will connect to a replica and can perform the same operations as 2 or 3 above, with the exception it's passed a flag to indicate it's waiting not for persistance of the sequence #, but the arrival from the master. Optionally, it can also wait until the replica persists the item by using the same options as when waiting for persistence on the master.
+To detect when a mutation is replicated to a replica node, the master server will return the sequence update number, partition ID and current server failover ID, and the client will connect to a replica and can perform the same operations as 2 or 3 above, with the exception it's passed a flag to indicate it's waiting not for persistence of the sequence #, but the arrival from the master. Optionally, it can also wait until the replica persists the item by using the same options as when waiting for persistence on the master.
 
 
 ## How we can get single document ACID
@@ -128,7 +128,7 @@ Assuming we'll never have multiset transactions (which would require distributed
 ## How UPR clients and ep-engine handshake
 
 1. An UPR client makes a connection.
-2. The UPR client sends the partition numbers for the partitions it wants to stream, the allowable states (active, replica, dead, pending), it also sends an identifier for what and who it is in the form of "%what%:%who%". The indentifier is so the server can track stats and differentiate between replica, indexer, xdcr etc in it's stat tracking.
+2. The UPR client sends the partition numbers for the partitions it wants to stream, the allowable states (active, replica, dead, pending), it also sends an identifier for what and who it is in the form of "%what%:%who%". The identifier is so the server can track stats and differentiate between replica, indexer, xdcr etc in it's stat tracking.
 3. ep-engine then sends the failover log for each partition it owns
 4. For each partition it wishes to stream, the client sends to the server partition number. expected state of active or replica, and latest failover ID and start seq number.
 5. For any partition the server doesn't own, is in the wrong state, or has too high a seq # or the wrong current failover ID, it sends a error to the client. The client is expected to disconnect, reload the client map and start back on step 1.
@@ -171,32 +171,47 @@ Assuming we'll never have multiset transactions (which would require distributed
 
 ## How clients roll back changes when seeing a new failover ID
 
-1. Each client maintains a ring buffer of recent mutations, and the last complete snapshot seq number it processed for each partition as well as the last failover ID from that snapshot. The ring buffer should be persisted before mutations are applied to persistence, unless the client also has the ability to natively rollback changes. 
+1. Each client maintains a ring buffer of recent mutations, and the last complete snapshot seq number it processed for each partition as well as the failover log from the master. The ring buffer should be persisted before mutations are applied to persistence, unless the client also has the ability to natively rollback changes. 
 2. A client requests list of failover logs from the server for each partition.
-3. It determine the starting sequence by scanning the for the most recent common failover ID in it's stored failover log, and it takes the smaller of it's own failover entry sequence or server's.
+3. It determine the starting sequence by scanning the for the most recent common failover ID in it's stored failover log, with any  and it takes the next .
 4. It rolls back it's own changes to the starting sequence number, by requesting the latest document for each higher seq in its ring buffer, and processing it. If the document doesn't exist, it deletes the document from it's state.
 5. If needs to rollback to a sequence that's lower than it's ring buffer contents, it sets the starting sequence number to 0.
 5. It removes the higher seq item IDs from the ring buffer.
 6. It asks the server for a snapshot of changes using the start sequence number, and applies them to the ring buffer and it's state.
 7. When done with the snapshot, it records the failover ID in it's state and the snapshot high seq.
 
-## How servers and replicas record the failover log and add new entries
 
-1. A replica (or intermediary UPR client) requests the failover log from the server. It rolls back any changes like a normal client if it gets ahead of the master.
-2. It gets a full snapshot like a normal client.
-3. For each snapshot it receives and persists, it persists the high snapshot seq into the failover log with the current master's failover ID (the most recent entry).
-2. If there is a smooth handover, it becomes the new master, and it preserves the failover log as is.
-1. If there is a failover to the replica, ns_server generates a new failover ID and the server pairs it with the last snapshot seq, and adds it to the front of the failover log.
-2. If the new failover sequence is lower than any entries in the failover log, those entries are removed from the log.
-1. It is now ready to serve as master, other replicas can stream changes from it.
-1. As it persist new mutations, it updates the last failover ID with the high seq.
+## How clients roll back changes when seeing a new failover ID
+
+1. Each client maintains a ring buffer of recent mutations, and the last complete snapshot seq number it processed for each partition as well as the failover log from the master. The ring buffer should be persisted before mutations are applied to persistence, unless the client also has the ability to natively rollback changes. 
+2. A client requests list of failover logs from the server for each partition.
+3. For each partition it determine the rollback sequence/start stream sequence by comparing it's failover log and snapshot sequence with the failover log from the master.
+4. It rolls back it's own changes to the rollback sequence number, by requesting the latest document for each higher seq in its ring buffer, and inserting it/processing it. If the document doesn't exist, it deletes the document from it's state.
+5. If it is a replica overwriting our own entries, we need to preserve the sequence number from the master in our storage as we do this. This means the ordering of the live documents might no longer be ordered on disk by sequence, but they will still be properly ordered in the by_sequence btree.
+5. If the document on the master server hasn't been modified since the rollback sequence number and it is a replica, it can optionally "repair" the master by sending the document to the master, letting it generate a new sequence and then purging our own entry. We'll receive repaired documents again when we stream the snapshot.
+5. If needs to rollback to a sequence that's lower than it's ring buffer contents, it sets the starting sequence number to 0.
+5. It removes the higher seq item IDs from the ring buffer.
+6. It asks the server for a snapshot of changes using the start sequence number, and applies them to the ring buffer and it's state.
+7. When done with the snapshot, it records the servers failover log in it's state and the snapshot high seq.
+
+## How UPR Replicas/Clients find out where to rollback to and stream from
+
+When an UPR client handshakes with the master, it needs to determine the rollback sequence number to unwind it's potentially out of sync state, which is also the same start snapshot sequence number it will then stream from the master.
+
+The algorithm below determines that sequence number for any state the master and client/replica can be in.
+
+1. A replica will request the failover log from the current master to compare with it's own failover log.
+2. It will add a dummy entry to the front of it's own failover log, with the current high persisted snapshot sequence (if it never persisted a snapshot sequence number, it uses 0). Any earlier entries with a seq greater than the current high persisted will be removed.
+3. It will add a dummy entry to the front of the log for the master, with the max possible sequence value.
+4. If there is a common ancestor in the log, grab next newer entry from both logs compare the sequences. The smaller of the two is the rollback sequence number.
+5. If there is no common ancestor, 0 is the rollback sequence.
 
 ## How ns_server performs a partition rebalance
 
 1. ns_server initiates a pending partition on a new node, or selects an existing replica and puts it into the pending state.
 2. If a new replica, an UPR client (either inside ep-engine or external) connects to the master and begins streaming.
 3. Once the replica is caught up the master, or nearly caught up (as decided by the algorithm or heuristic inside ns_server), ns_server tells the master to put it's partition into the dead state, so that it no longer accepts new mutations. ns_server can monitor how caught up a replica is by asking the master and replica for the current high seq it's seen and/or persisted.
-4. Once all mutations are sent to the replica and persisted without error, (ns_server will montitor this in the same way a client ensures persistance), then ns_server tells the new server to set it's partition state to active, and then tells the master to either delete it's partition or put it into the replica state.
+4. Once all mutations are sent to the replica and persisted without error, (ns_server will monitor this in the same way a client ensures persistence), then ns_server tells the new server to set it's partition state to active, and then tells the master to either delete it's partition or put it into the replica state.
 5. If there is an fatal error or timeout in step 4, ns_server will tell the master to go back into the active state. If not possible, it will perform a failover to another replica.
 
 
@@ -204,9 +219,9 @@ Assuming we'll never have multiset transactions (which would require distributed
 
 If ns_server detects the master is crashed or unresponsive, it can put a replica in the cluster into the active state and assign it a new failover ID in a single operation. It can then initiate a new replica as an UPR client of the master.
 
-## How ns_server and ep-engine guarantee ordering of partition state transistions
+## How ns_server and ep-engine guarantee ordering of partition state transitions
 
-There is a rare, but possible, problem of misordering of partition transition changes and other partition states.
+There is a rare, but possible, problem of mis-ordering of partition transition changes and other partition states.
 
 If ns_server attempts to set a partition to another state, but loses the connection with ep-engine before getting back a success response, it's possible that it will send another state transition command which will be processed out of order in ep-engine, putting the partition in the incorrect state.
 
@@ -219,7 +234,7 @@ A simple fix is to use a CAS mechanism when modifying partition state. There wil
 3. ns_server will send any new state/commands using the CAS, to set appropriate state and turn on front-end client connections.
 4. If the CAS matches and the command and states are accepted, ep-engine will respond with success and new CAS, which will be noted by ns_server.
 5. If the CAS doesn't match or the command has an error, ep-engine will return the appropriate error.
-6. If a CAS error, ep_epgine will return an error with the correct CAS and ns_server will record the correct CAS and retry.
+6. If a CAS error, ep_engine will return an error with the correct CAS and ns_server will record the correct CAS and retry.
 7. If another error, ns_server will log and possibly take another action, like a retry.
 
 ## How UPR stats are tracked
@@ -232,7 +247,7 @@ ns_server will retrieve all stats for UPR connections, and will parse the stats 
 
 Comments from Trond:
 
-From a TAP point of view it shouldn't be hard to make it backwards compatible, because the "old" tap just contains two different methods (with some mutatations like in the vbucket move that the last thing it does is to mark the bucket as dead and disconnect the client etc).: 
+From a TAP point of view it shouldn't be hard to make it backwards compatible, because the "old" tap just contains two different methods (with some mutations like in the vbucket move that the last thing it does is to mark the bucket as dead and disconnect the client etc).: 
 
 * Start give me live mutations
 * Send me everything you got and keep sending me stuff.
