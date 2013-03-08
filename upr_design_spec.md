@@ -263,9 +263,9 @@ In the first message sent to the server we need to add a new TAP FLAG indicating
 
 Before we compare we add some special values to the tables to make the algorithm work:
 
-`00000000` - Server sentinel, always highest seq of client #
+`ffffffff` - Server sentinel, always highest seq of client #
 
-`ffffffff` - Client sentinel, always client last snapshot seq
+`00000000` - Client sentinel, always client last snapshot seq
 
 ###First connect, Replica has no log, no snapshot:
 <table>
