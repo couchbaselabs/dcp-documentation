@@ -277,7 +277,7 @@ Before we compare we add some special values to the tables to make the algorithm
 	<th>Failover</th><th>At</th>
 </tr>
 <tr>
-	<td><code>ffffffff</code></td><td>5</td>
+	<td><code>ffffffff</code></td><td>0</td>
 	<td><code>00000000</code></td><td>0</td>
 </tr>
 <tr>
@@ -590,21 +590,11 @@ Existing Replica C connects to new master and gets the failover log to compare w
 
 ![](FailoverImages/Canvas%209.png)
 
-### Replica C repairs Master and rolls back to common snapshot sequence
-
-Replica D starts streaming from the master.
-
-Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master.
-
-It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
-
-![](FailoverImages/Canvas%2012.png)
-
 ### Replica C repairs master and rolls back to common snapshot sequence
 
 Replica D starts streaming from the master.
 
-Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master, it then purges for it's storage those documents.
+Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master, it then purges thos documents from it's storage.
 
 It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
 
