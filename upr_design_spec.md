@@ -282,6 +282,7 @@ Before we compare we add some special values to the tables to make the algorithm
 </tr>
 <tr>
 	<td><code>cafebabe</code></td><td>0</td>
+	<td></td><td></td>
 </tr>
 </table>
 
