@@ -96,20 +96,28 @@ When a server owns a replica partition, there is a UPR client feeding it mutatio
 
 It is also important that the replica persist the mutation in sequence order. This is already guaranteed as long as items are sent in sequence order, and the replica persists everything in the partition write queue in a single commit.
 
-## How front end clients ensure mutations are persisted to disk or replicated.
+## How front end clients ensure mutations are persisted to disk on master
 
 Clients when performing a mutation can either block until the mutation is persisted, or receive the sequence update number, partition ID and current server failover ID and waits until the server has persisted it.
 
-There can be 3 kinds of blocking of the front end client to ensure persistence:
+There can be 3 kinds of operations of the front end client to ensure persistence:
 
 1. The server blocks on the mutation response until the mutation is durable, by monitoring internally when the persisted sequence number is greater than or equal to assigned sequence number.
-2. The server sends back the high update sequence #, and the client makes a new type of connection, sends the sequence # and partition ID and failover ID, and server blocks until persistence has completed through that sequence.
+2. The server sends back the high update sequence #, and the client makes a new type of connection, sends the sequence # and partition ID and failover ID, and the server blocks until persistence has completed through that sequence.
 3. The server sends back the high update sequence #, and the client polls the server with the sequence #, partition ID and failover ID, and keeps polling until the server has completed persistence through that sequence.
 
-For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possible re-perform the mutation to ensure it complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
+For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possibly re-perform the mutation to ensure it's complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
 
-To detect when a mutation is replicated to a replica node, the master server will return the sequence update number, partition ID and current server failover ID, and the client will connect to a replica and can perform the same operations as 2 or 3 above, with the exception it's passed a flag to indicate it's waiting not for persistence of the sequence #, but the arrival from the master. Optionally, it can also wait until the replica persists the item by using the same options as when waiting for persistence on the master.
+## How front end clients ensure mutations are replicated or persisted on a replica
 
+There can be 2 kinds of operations of the front end client to ensure replication or replica persistence. First the client gets the new sequence for a mutation transaction from the server, then:
+
+2. The master server sends back the high update sequence #, and the client makes a new type of connection to a replica, sends the sequence # and partition ID and failover ID, and the replica server blocks until the replica has received a snapshot higher or equal to the sequence # returned by the master server.
+3. The server sends back the high update sequence #, and the client polls the server with the sequence #, partition ID and failover ID, and keeps polling until the server has completed snapshot persistence through that sequence.
+
+For 2 and 3 above, if the server's failover ID doesn't match the ID supplied by the client, it returns an error. The client will need to reexamine the server's version of the document and possibly re-perform the mutation to ensure it's complete. If the server is no longer the master of that partition, it will return a "not my partition" error and the client will reload the cluster map and retry.
+
+Note: because of subsequent updates by another client and reduplication of item, the client can't just wait for the sequence to arrive at the replica, since it might have been elided by subsequent updates. Waiting for doc id is more expensive than necessary, instead we wait for a complete snapshot from the master where the high snapshot sequence # is equal to or higher than supplied by the client.
 
 ## How we can get single document ACID
 
@@ -167,18 +175,7 @@ Assuming we'll never have multiset transactions (which would require distributed
 2. When ep-engine gets a barrier cookie, it records the number of cycles it's completed and the partition it's currently streaming. This find the point after where it should send back the barrier cookie to the client. It places this into the barrier queue. 
 3. Every time ep-engine completes a cycle for all partitions, it increments the cycle counter.
 4. After each partition snapshot is completed or skipped it checks the barrier queue to see if it's streamed every partition since the barrier was added. It does this by checking if the number of cycles and the next partition are greater than the barrier marker. If so, it sends the barrier cookie back to the client and pops it out of the queue.
-5. If there are not more mutations to stream, it sends back all barrier cookies.
-
-## How clients roll back changes when seeing a new failover ID
-
-1. Each client maintains a ring buffer of recent mutations, and the last complete snapshot seq number it processed for each partition as well as the failover log from the master. The ring buffer should be persisted before mutations are applied to persistence, unless the client also has the ability to natively rollback changes. 
-2. A client requests list of failover logs from the server for each partition.
-3. It determine the starting sequence by scanning the for the most recent common failover ID in it's stored failover log, with any  and it takes the next .
-4. It rolls back it's own changes to the starting sequence number, by requesting the latest document for each higher seq in its ring buffer, and processing it. If the document doesn't exist, it deletes the document from it's state.
-5. If needs to rollback to a sequence that's lower than it's ring buffer contents, it sets the starting sequence number to 0.
-5. It removes the higher seq item IDs from the ring buffer.
-6. It asks the server for a snapshot of changes using the start sequence number, and applies them to the ring buffer and it's state.
-7. When done with the snapshot, it records the failover ID in it's state and the snapshot high seq.
+5. If there are not more mutations to stream, it sends back all barrier cookies. state and the snapshot high seq.
 
 
 ## How clients roll back changes when seeing a new failover ID
