@@ -522,13 +522,13 @@ No common ancestor, must rollback everything:
 **Not possible!** If the replica saw a master with the failover ID after `cafebabe`, it's impossible for the current master to still be at `cafebabe`, since it would have had to not be master, then become master and generate a new failover ID.
 
 
-## UPR in action on Cluster
+## UPR in action on a Cluster
 
 Here is a three node cluster with replica failovers and new nodes being added.
 
 First we have server A as the master of partition 1. In the real world, Server A will be master of many partitions and most of the operations here will be happening with multiple partitions.
 
-The clients in the example are replicas, so they don't need a ringbuffer to rollback since they already have a built in log of changes with the by_sequence btree.
+The clients in the example are replicas, so they don't need a ringbuffer to rollback since they already have a built-in log of changes with the by_sequence btree.
 
 ### Initialization
 
@@ -542,27 +542,27 @@ The replicas pull the master log and apply it to it's storage.
 
 ### Begin streaming mutations
 
-Master server A has set into it's memory 5 mutations, which is has not yet persisted.
+Master server A has set into it's memory 5 mutations, which it has not yet persisted.
 
-Replica B starts streaming from sequence 0. The master snapshots the unpersisted mutations through seq 6, and starts sending them to the replica.
+Replica B starts streaming from sequence 0. The master snapshots the unpersisted mutations through seq 5, and starts sending them to the replica.
 
 ![](FailoverImages/Canvas%202.png)
 
 ### Continue streaming mutations
 
-Master server A has set 3 more mutations, it has already persisted all mutations to durable storage, which is has not yet persisted.
+Master server A has set 3 more mutations, it has already persisted all mutations to durable storage.
 
 Replica B is still streaming from sequence 0 to 5, it has already persisted through sequence 4.
 
-Replica C starts streaming from sequence 0. The master snapshots the unpersisted mutations and starts sending them to the replica.
+Replica C starts streaming from sequence 0. The master snapshots the mutations and starts sending them to the replica.
 
 ![](FailoverImages/Canvas%203.png)
 
 ### Continue streaming mutations, next snapshot
 
-Master server A has set 3 more mutations, it has already persisted all mutations to durable storage, which is has not yet persisted.
+Master server A has set 3 more mutations, it has already persisted all mutations to durable storage.
 
-Replica B has finished streaming the snapshot and persisted all mutations. It persists it's last snapshot sequence at 5. Master starts streaming the next snapshot for mutations 6 to 8.
+Replica B has finished streaming the snapshot and persisted all mutations. It persists its last snapshot sequence at 5. Master starts streaming the next snapshot for mutations 6 to 8.
 
 Replica C has finished streaming the snapshot and persisted all mutations. It persists it's last snapshot sequence at 8.
 
@@ -594,17 +594,17 @@ Existing Replica C connects to new master and gets the failover log to compare w
 
 Replica D starts streaming from the master.
 
-Replica C discovers it has mutations possibly not on the master. It will repair the master forfor documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master.
+Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master.
 
 It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
 
 ![](FailoverImages/Canvas%2012.png)
 
-### Replica C repairs Master and rolls back to common snapshot sequence
+### Replica C repairs master and rolls back to common snapshot sequence
 
 Replica D starts streaming from the master.
 
-Replica C discovers it has mutations possibly not on the master. It will repair the master forfor documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master.
+Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master, it then purges for it's storage those documents.
 
 It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
 
