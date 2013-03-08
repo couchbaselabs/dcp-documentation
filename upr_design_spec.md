@@ -206,7 +206,60 @@ The algorithm below determines that sequence number for any state the master and
 4. If there is a common ancestor in the log, grab next newer entry from both logs compare the sequences. The smaller of the two is the rollback sequence number.
 5. If there is no common ancestor, 0 is the rollback sequence.
 
-## Examples of finding RollbackSeq/StartSeq from the failover logs
+## How ns_server performs a partition rebalance
+
+1. ns_server initiates a pending partition on a new node, or selects an existing replica and puts it into the pending state.
+2. If a new replica, an UPR client (either inside ep-engine or external) connects to the master and begins streaming.
+3. Once the replica is caught up the master, or nearly caught up (as decided by the algorithm or heuristic inside ns_server), ns_server tells the master to put it's partition into the dead state, so that it no longer accepts new mutations. ns_server can monitor how caught up a replica is by asking the master and replica for the current high seq it's seen and/or persisted.
+4. Once all mutations are sent to the replica and persisted without error, (ns_server will monitor this in the same way a client ensures persistence), then ns_server tells the new server to set it's partition state to active, and then tells the master to either delete it's partition or put it into the replica state.
+5. If there is an fatal error or timeout in step 4, ns_server will tell the master to go back into the active state. If not possible, it will perform a failover to another replica.
+
+
+## How ns_server performs failover
+
+If ns_server detects the master is crashed or unresponsive, it can put a replica in the cluster into the active state and assign it a new failover ID in a single operation. It can then initiate a new replica as an UPR client of the master.
+
+## How ns_server and ep-engine guarantee ordering of partition state transitions
+
+There is a rare, but possible, problem of mis-ordering of partition transition changes and other partition states.
+
+If ns_server attempts to set a partition to another state, but loses the connection with ep-engine before getting back a success response, it's possible that it will send another state transition command which will be processed out of order in ep-engine, putting the partition in the incorrect state.
+
+This is because ep-engine can still receive the first command after the second, because of non-deterministic multi-threading and the possibility of the message from the broken connection still residing in network buffers.
+
+A simple fix is to use a CAS mechanism when modifying partition state. There will be a single CAS for a bucket.
+
+1. On startup, ep-engine will generate a CAS and start partitions in the previous state persisted, with front-end client connections turned off.
+2. ns_server will poll to wait until ep-engine has warmed up all partitions, and to discover the CAS.
+3. ns_server will send any new state/commands using the CAS, to set appropriate state and turn on front-end client connections.
+4. If the CAS matches and the command and states are accepted, ep-engine will respond with success and new CAS, which will be noted by ns_server.
+5. If the CAS doesn't match or the command has an error, ep-engine will return the appropriate error.
+6. If a CAS error, ep_engine will return an error with the correct CAS and ns_server will record the correct CAS and retry.
+7. If another error, ns_server will log and possibly take another action, like a retry.
+
+## How UPR stats are tracked
+
+For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are suffixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
+
+ns_server will retrieve all stats for UPR connections, and will parse the stats to discover if they are from a replica, vs a view or backup, etc, by parsing the stat name.
+
+## How to maintain backwards compatibility with existing TAP replicas/masters.
+
+Comments from Trond:
+
+From a TAP point of view it shouldn't be hard to make it backwards compatible, because the "old" tap just contains two different methods (with some mutations like in the vbucket move that the last thing it does is to mark the bucket as dead and disconnect the client etc).: 
+
+* Start give me live mutations
+* Send me everything you got and keep sending me stuff.
+
+It is the _client_ that dictates the method to use (and this is instantiated by ns_server, so it knows the versions being used on both ends and may start the transfer with the appropriate flag). 
+
+In the first message sent to the server we need to add a new TAP FLAG indicating that it want to use UPR (in future versions we may want to disconnect clients who don't set this flag when we no longer want to support the old one). We may then either use the "engine-specific" parts of the "old" tap messages, or use the TAP_OPAQUE message type to transfer additional information.
+
+# Examples
+
+
+## Finding RollbackSeq/StartSeq from the failover logs
 
 Before we compare we add some special values to the tables to make the algorithm work:
 
@@ -467,57 +520,8 @@ No common ancestor, must rollback everything:
 
 **Not possible!** If the replica saw a master with the failover ID after `cafebabe`, it's impossible for the current master to still be at `cafebabe`, since it would have had to not be master, then become master and generate a new failover ID.
 
-## How ns_server performs a partition rebalance
 
-1. ns_server initiates a pending partition on a new node, or selects an existing replica and puts it into the pending state.
-2. If a new replica, an UPR client (either inside ep-engine or external) connects to the master and begins streaming.
-3. Once the replica is caught up the master, or nearly caught up (as decided by the algorithm or heuristic inside ns_server), ns_server tells the master to put it's partition into the dead state, so that it no longer accepts new mutations. ns_server can monitor how caught up a replica is by asking the master and replica for the current high seq it's seen and/or persisted.
-4. Once all mutations are sent to the replica and persisted without error, (ns_server will monitor this in the same way a client ensures persistence), then ns_server tells the new server to set it's partition state to active, and then tells the master to either delete it's partition or put it into the replica state.
-5. If there is an fatal error or timeout in step 4, ns_server will tell the master to go back into the active state. If not possible, it will perform a failover to another replica.
-
-
-## How ns_server performs failover
-
-If ns_server detects the master is crashed or unresponsive, it can put a replica in the cluster into the active state and assign it a new failover ID in a single operation. It can then initiate a new replica as an UPR client of the master.
-
-## How ns_server and ep-engine guarantee ordering of partition state transitions
-
-There is a rare, but possible, problem of mis-ordering of partition transition changes and other partition states.
-
-If ns_server attempts to set a partition to another state, but loses the connection with ep-engine before getting back a success response, it's possible that it will send another state transition command which will be processed out of order in ep-engine, putting the partition in the incorrect state.
-
-This is because ep-engine can still receive the first command after the second, because of non-deterministic multi-threading and the possibility of the message from the broken connection still residing in network buffers.
-
-A simple fix is to use a CAS mechanism when modifying partition state. There will be a single CAS for a bucket.
-
-1. On startup, ep-engine will generate a CAS and start partitions in the previous state persisted, with front-end client connections turned off.
-2. ns_server will poll to wait until ep-engine has warmed up all partitions, and to discover the CAS.
-3. ns_server will send any new state/commands using the CAS, to set appropriate state and turn on front-end client connections.
-4. If the CAS matches and the command and states are accepted, ep-engine will respond with success and new CAS, which will be noted by ns_server.
-5. If the CAS doesn't match or the command has an error, ep-engine will return the appropriate error.
-6. If a CAS error, ep_engine will return an error with the correct CAS and ns_server will record the correct CAS and retry.
-7. If another error, ns_server will log and possibly take another action, like a retry.
-
-## How UPR stats are tracked
-
-For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are suffixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
-
-ns_server will retrieve all stats for UPR connections, and will parse the stats to discover if they are from a replica, vs a view or backup, etc, by parsing the stat name.
-
-## How to maintain backwards compatibility with existing TAP replicas/masters.
-
-Comments from Trond:
-
-From a TAP point of view it shouldn't be hard to make it backwards compatible, because the "old" tap just contains two different methods (with some mutations like in the vbucket move that the last thing it does is to mark the bucket as dead and disconnect the client etc).: 
-
-* Start give me live mutations
-* Send me everything you got and keep sending me stuff.
-
-It is the _client_ that dictates the method to use (and this is instantiated by ns_server, so it knows the versions being used on both ends and may start the transfer with the appropriate flag). 
-
-In the first message sent to the server we need to add a new TAP FLAG indicating that it want to use UPR (in future versions we may want to disconnect clients who don't set this flag when we no longer want to support the old one). We may then either use the "engine-specific" parts of the "old" tap messages, or use the TAP_OPAQUE message type to transfer additional information.
-
-# Example of UPR in action
+## UPR in action on Cluster
 
 Here is a three node cluster with replica failovers and new nodes being added.
 
@@ -525,7 +529,7 @@ First we have server A as the master of partition 1. In the real world, Server A
 
 The clients in the example are replicas, so they don't need a ringbuffer to rollback since they already have a built in log of changes with the by_sequence btree.
 
-## Initialization
+### Initialization
 
 When the master comes online, it generates a failover GUID and indicates that it came active at seq 0.
 
@@ -535,7 +539,7 @@ The replicas pull the master log and apply it to it's storage.
 
 ![](FailoverImages/Canvas%201.png)
 
-## Begin streaming mutations
+### Begin streaming mutations
 
 Master server A has set into it's memory 5 mutations, which is has not yet persisted.
 
@@ -543,7 +547,7 @@ Replica B starts streaming from sequence 0. The master snapshots the unpersisted
 
 ![](FailoverImages/Canvas%202.png)
 
-## Continue streaming mutations
+### Continue streaming mutations
 
 Master server A has set 3 more mutations, it has already persisted all mutations to durable storage, which is has not yet persisted.
 
@@ -553,7 +557,7 @@ Replica C starts streaming from sequence 0. The master snapshots the unpersisted
 
 ![](FailoverImages/Canvas%203.png)
 
-## Continue streaming mutations, next snapshot
+### Continue streaming mutations, next snapshot
 
 Master server A has set 3 more mutations, it has already persisted all mutations to durable storage, which is has not yet persisted.
 
@@ -563,19 +567,19 @@ Replica C has finished streaming the snapshot and persisted all mutations. It pe
 
 ![](FailoverImages/Canvas%205.png)
 
-## Master goes down
+### Master goes down
 
 Master server A dies/becomes unresponsive. It's removed from the cluster.
 
 ![](FailoverImages/Canvas%207.png)
 
-## Replica becomes Master
+### Replica becomes Master
 
 Replica B becomes Master server B. It generates a new entry in the failover log, noting the high sequence of the last complete snapshot it persisted.
 
 ![](FailoverImages/Canvas%208.png)
 
-## Replicas recognize new master
+### Replicas recognize new master
 
 Already the new master has started accepting mutations.
 
@@ -585,7 +589,7 @@ Existing Replica C connects to new master and gets the failover log to compare w
 
 ![](FailoverImages/Canvas%209.png)
 
-## Replica C repairs Master and rolls back to common snapshot sequence
+### Replica C repairs Master and rolls back to common snapshot sequence
 
 Replica D starts streaming from the master.
 
@@ -595,7 +599,7 @@ It applys to its storage the masters version of any documents it couldn't repair
 
 ![](FailoverImages/Canvas%2012.png)
 
-## Replica C repairs Master and rolls back to common snapshot sequence
+### Replica C repairs Master and rolls back to common snapshot sequence
 
 Replica D starts streaming from the master.
 
@@ -605,7 +609,7 @@ It applys to its storage the masters version of any documents it couldn't repair
 
 ![](FailoverImages/Canvas%2012.png)
 
-## Streaming mutations from new master
+### Streaming mutations from new master
 
 Both server D and server A continue to stream in mutations, continuing operations as normal.
 
