@@ -198,10 +198,11 @@ When an UPR client handshakes with the master, it needs to determine the rollbac
 The algorithm below determines that sequence number for any state the master and client/replica can be in.
 
 1. A replica will request the failover log from the current master to compare with it's own failover log.
-2. It will add a dummy entry to the front of it's own failover log, with the current high persisted snapshot sequence (if it never persisted a snapshot sequence number, it uses 0). Any earlier entries with a seq greater than the current high persisted will be removed.
-3. It will add a dummy entry to the front of the log for the master, with the max possible sequence value.
-4. If there is a common ancestor in the log, grab next newer entry from both logs compare the sequences. The smaller of the two is the rollback sequence number.
-5. If there is no common ancestor, 0 is the rollback sequence.
+2. If not equal, the replica will add a dummy entry to the front of it's own failover log, with the current high persisted snapshot sequence (if it never persisted a snapshot sequence number, it uses 0). Any earlier entries with a seq greater than the current high persisted will be removed.
+3. It will add a dummy entry to the front of the log for the master, with the highest sequence the replica has seen, but not necessarily a snapshot.
+4. If there is a common ancestor in the log, grab next newer entry from both logs compare the sequences.
+5. If both Failover IDs are sentinels, take the largest of the two as the rollback sequence. If not, the smaller of the two is the rollback sequence number.
+6. If there is no common ancestor, 0 is the rollback sequence.
 
 ## How ns_server performs a partition rebalance
 
@@ -306,7 +307,7 @@ No common ancestor:
 </tr>
 </table>
 
-`cafebabe` common ancestor, take smaller of next higher row seq:
+`cafebabe` common ancestor, the next row are both sentinels, take the larger of the two:
 
 **RollbackSeq/StartSeq is 5**
 
@@ -329,7 +330,7 @@ No common ancestor:
 </tr>
 </table>
 
-`cafebabe` common ancestor, take smaller of next higher row seq:
+`cafebabe` common ancestor, the next row are both sentinels, take the larger of the two:
 
 **RollbackSeq/StartSeq is 7**
 
