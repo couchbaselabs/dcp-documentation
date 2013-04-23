@@ -39,7 +39,7 @@ This is the storage engine component of Couchbase Server. It arranges a record o
 
 ### Write Queue/Immutable Tree
 
-These are per-partition, in-memory immutable tree ordered by update seq that allows for snapshotting unpersisted items by multiple concurrent consumers (clients and flusher), allowing each an independent snapshot while also allowing concurrent updates. The immutable btree will allow for relatively low memory consumption, fast reads and writes, and automatic freeing of unused tree nodes and values.
+These are per-partition, in-memory immutable tree ordered by update seq that allows for snapshotting unpersisted items by multiple concurrent consumers (clients and flusher), allowing each an independent snapshot while also allowing concurrent updates. The immutable tree will allow for relatively low memory consumption, fast reads and writes, and automatic freeing of unreachable tree nodes and values.
 
 The tree nodes link to immutable data and are ref counted, with each node pointed to by one or more parent snapshots, and the root ref count is incremented by each partition write queue manager. 
 
@@ -55,7 +55,7 @@ Possible library we can use, from the LLVM project:
 
 Values that are assigned to the bucket/partition hashtable are immutable and ref counted. The hash table record itself is not immutable and can be assigned a new immutable values.
 
-When the value is retrieved from the hashtable, the hash table record is locked, and the value the ref count is incremented, and then the record is unlocked. When the value is no longer referenced by the hash table, write queue or any other process/thread in the server, it is automatically freed as it's ref count falls to zero.
+When the value is retrieved from the hashtable, the hash table record is locked, and the value ref count is incremented, and then the record is unlocked. When the value is no longer referenced by the hash table, write queue or any other process/thread in the server, it is automatically freed as it's ref count falls to zero.
 
 ### Failover Log
 
@@ -67,11 +67,11 @@ The failover log is a list of UUIDs/sequence pairs and each is marker of high se
 
 Clients can wait to persist the failover log whenever it completely persists a snapshot, as well as the high sequence snapshot it most recently persisted.
 
-When a client connects to a server and before it stream a new partition snapshot, it will compare it's failover log with the server to find highest safe sequence number it can stream.
+When a client connects to a server and before it stream a new partition snapshot, it will compare it's failover log with the server to find the highest safe sequence number it can stream.
 
-### Client and Ringbuffer
+### Client and Mutation Log
 
-The client is a process that can talk to a server and streaming changes from it. It will have a ring buffer of the latest key mutations to provide a way to rollback changes if it is ahead the of a server after a failover or crash. The ring buffer size should be configurable. If the client needs to use a sequence that's lower than the latest sequence it's seen, it will use the ring buffer to undo any changes that might be out of sync with the master before streaming from the common sequence number.
+The client is a process that can talk to a server and streaming changes from it. It will have a mutation log of the latest key mutations to provide a way to rollback changes if it is ahead the of a server after a failover or crash. The maximum log size should be configurable, so the oldest entries are removed when it exceeds the length. If the client needs to use a sequence that's lower than the latest sequence it's seen, it will use the mutation log to undo any changes that might be out of sync with the master before streaming from the common sequence number.
 
 ### Barrier Cookies
 
@@ -85,7 +85,7 @@ Barrier cookies are a way a for a indexer to ensure consistency with storage qui
 3. If a CAS operation, the mutation is either accepted or rejected.
 4. If the mutation is accepted, the partition seq is incremented and assigned to the mutation.
 5. The mutation is placed into the locked hash table entry with a new seq item, and then locks the write queue.
-6. If an existing item, the old seq from the hashtable entry is used to delete the previous by seq entry from the write queue.
+6. If an existing item, the old seq from the hashtable entry is used to delete the previous by seq entry from the write queue by being marked as a seq key to delete.
 7. If a deleted item, the item in the hash table is kept around, and will be until the deletion is persisted.
 8. The hash table partition is unlocked.
 9. The client gets a response that the item was accepted.
@@ -123,7 +123,9 @@ Note: because of subsequent updates by another client and reduplication of item,
 
 **This is outside the scope of the current implementation.**
 
-Assuming we'll never have multiset transactions (which would require distributed transactions), the thing preventing  single document ACID is the lack of Isolation of a single mutation. Mutations in this scheme will still be visible by all other clients before they are durable or replicated, which, if there is master failure, means updates can be seen by clients and then subsequently lost.
+Assuming we'll never have multiset transactions (which would require distributed transactions), the thing preventing single document ACID is the lack of Isolation of a single mutation. Mutations in this scheme will still be visible by all other clients before they are durable or replicated, which, if there is master failure, means updates can be seen by clients and then subsequently lost.
+
+Future versions of Couchbase will likely provide this capability.
 
 ## How items in the partition write queue flow to couchstore
 
@@ -136,22 +138,22 @@ Assuming we'll never have multiset transactions (which would require distributed
 ## How UPR clients and ep-engine handshake
 
 1. An UPR client makes a connection.
-2. The UPR client sends the partition numbers for the partitions it wants to stream, the allowable states (active, replica, dead, pending), it also sends an identifier for what and who it is in the form of "%what%:%who%". The identifier is so the server can track stats and differentiate between replica, indexer, xdcr etc in it's stat tracking.
-3. ep-engine then sends the failover log for each partition it owns
+2. The UPR client sends the partition numbers for the partitions it wants to stream, the allowable states (active, replica, dead, pending), it also sends an identifier for what and who it is in the form of "%what%:%who%". The identifier is so the server can track stats and differentiate between replica, indexer, xdcr etc in it's own stat tracking and reporting.
+3. ep-engine then sends the failover log for each partition it owns.
 4. For each partition it wishes to stream, the client sends to the server partition number. expected state of active or replica, and latest failover ID and start seq number.
 5. For any partition the server doesn't own, is in the wrong state, or has too high a seq # or the wrong current failover ID, it sends a error to the client. The client is expected to disconnect, reload the client map and start back on step 1.
 
 ## How ep-engine sends snapshots to UPR clients
 
 6. The server will send a complete snapshot of each partition, one at a time. It will send the snapshot of each partition with mutations in partition ID order.
-6. For each partition with mutations. The server will first send a partition start message, which includes the partition ID it will send, then stream all changes, in sequence order with the sequence number. The server may send duplicates for  items, but it will never omit an item.
+6. For each partition with mutations. The server will first send a partition start message, which includes the partition ID it will send, then stream all changes, in sequence order with the sequence number. The server may send duplicates for items, but it will never omit an item.
 7. If a partition has no mutations, the server will send no partition start message, it will skip it.
 7. When it's checked or sent all partitions, the server will send a "completed all partitions message".
 7. The server then loops around and streams any new mutations for the registered partitions. If there are no mutations, the server will pause until there are mutations, or until it gets barrier cookie from the client.
 
 ## Barrier cookies, how clients request faster/multiple complete snapshots
 
-8. If the client wishes to get a faster consistent view at a point in time, or multiple consistent snapshots for it's own clients, it sends to the server a "barrier cookie", a short text string that is unique per UPR connection.
+8. If the client, who is also a secondary index server, wishes to get a faster consistent view at a point in time, or multiple consistent snapshots for it's own clients, it sends to the server a "barrier cookie", a short text string that is unique per UPR connection.
 9. The server then notes the new barrier cookie and keeps any old barrier cookie(s) around that is hasn't yet sent.
 9. When the barrier cookie order is received and all partitions have been streamed after the barrier cookie is added, it sends back the barrier cooke so the client knows it's seen a consistent snapshot for all partitions.
 10. The server forgets a barrier after sending it back.
@@ -175,7 +177,7 @@ Assuming we'll never have multiset transactions (which would require distributed
 2. When ep-engine gets a barrier cookie, it records the number of cycles it's completed and the partition it's currently streaming. This find the point after where it should send back the barrier cookie to the client. It places this into the barrier queue. 
 3. Every time ep-engine completes a cycle for all partitions, it increments the cycle counter.
 4. After each partition snapshot is completed or skipped it checks the barrier queue to see if it's streamed every partition since the barrier was added. It does this by checking if the number of cycles and the next partition are greater than the barrier marker. If so, it sends the barrier cookie back to the client and pops it out of the queue.
-5. If there are not more mutations to stream, it sends back all barrier cookies. state and the snapshot high seq.
+5. If there are not more mutations to stream, it sends back all barrier cookie state with the snapshot high seq.
 
 
 ## How clients roll back changes when seeing a new failover ID
@@ -198,8 +200,8 @@ When an UPR client handshakes with the master, it needs to determine the rollbac
 The algorithm below determines that sequence number for any state the master and client/replica can be in.
 
 1. A replica will request the failover log from the current master to compare with it's own failover log.
-2. If not equal, the replica will add a dummy entry to the front of it's own failover log, with the current high persisted snapshot sequence (if it never persisted a snapshot sequence number, it uses 0). Any earlier entries with a seq greater than the current high persisted will be removed.
-3. It will add a dummy entry to the front of the log for the master, with the highest sequence the replica has seen, but not necessarily a snapshot.
+2. If not equal, the replica will add a dummy entry with sentinel Id to the front of it's own failover log, with the current high persisted snapshot sequence (if it never persisted a snapshot sequence number, it uses 0). Any earlier entries with a seq greater than the current high persisted will be removed.
+3. It will add a dummy entry with sentinel Id to the front of the log for the master, with the highest sequence the replica has seen, but not necessarily a snapshot.
 4. If there is a common ancestor in the log, grab next newer entry from both logs compare the sequences.
 5. If both Failover IDs are sentinels, take the largest of the two as the rollback sequence. If not, the smaller of the two is the rollback sequence number.
 6. If there is no common ancestor, 0 is the rollback sequence.
@@ -237,7 +239,7 @@ A simple fix is to use a CAS mechanism when modifying partition state. There wil
 
 ## How UPR stats are tracked
 
-For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are suffixed with that string. Replicas UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
+For each UPR connection, the identifying string in the client handshake is concatenated with the partition ID and all stats for that connection are suffixed with that string. Replica's UPR connections will identify destination node with the string "Replica:%NodeID%" where node ID is the identifier of the replica. The concatenated stat identifier will look like "%StatName%:%PartitionID%:Replica:%NodeId%".
 
 ns_server will retrieve all stats for UPR connections, and will parse the stats to discover if they are from a replica, vs a view or backup, etc, by parsing the stat name.
 
@@ -592,9 +594,9 @@ Existing Replica C connects to new master and gets the failover log to compare w
 
 Replica D starts streaming from the master.
 
-Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master, it then purges thos documents from it's storage.
+Replica C discovers it has mutations possibly not on the master. It will repair the master for documents that haven't been updated since the rollback point, the repaired documents will get a new sequence on the master, the replica then purges those documents from it's storage.
 
-It applys to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
+It applies to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
 
 ![](FailoverImages/Canvas%2012.png)
 
