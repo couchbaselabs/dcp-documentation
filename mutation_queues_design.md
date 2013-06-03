@@ -14,16 +14,16 @@ Each outgoing event client (replicator or persister) is given an iterator into t
 
 ## Design goals
 
-    Maximize concurrency
+    * Maximize concurrency
 
-    Make efficient use of memory
+    * Make efficient use of memory
 
-    Minimize memory allocation and deallocation
+    * Minimize memory allocation and deallocation
 
-    Effectively support both document and counters as stored values
+    * Effectively support both document and counters as stored values
 
 
-## Design Summary
+## Design summary
 
     There is a single mutation queue per partition.  Therefore, the rest of this design applies to a single partition.
 
@@ -54,7 +54,7 @@ Each outgoing event client (replicator or persister) is given an iterator into t
     Each iterator maintains a cursor into both lists (thus two cursors per iterator).  When returning the next event, an iterator compares the sequence numbers of both cursors and returns the lower of the two.
 
 
-## Design Details
+## Design details
 
 ### Reference counting
 
