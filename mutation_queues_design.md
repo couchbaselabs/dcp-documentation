@@ -14,13 +14,13 @@ Each outgoing event client (replicator or persister) is given an iterator into t
 
 ## Design goals
 
-    * Maximize concurrency
+* Maximize concurrency
 
-    * Make efficient use of memory
+* Make efficient use of memory
 
-    * Minimize memory allocation and deallocation
+* Minimize memory allocation and deallocation
 
-    * Effectively support both document and counters as stored values
+* Effectively support both document and counters as stored values
 
 
 ## Design summary
@@ -55,7 +55,6 @@ Each outgoing event client (replicator or persister) is given an iterator into t
 
 
 ## Design details
-
 ### Reference counting
 
 Both the trees and arrays are reference counted.  Each mutator and duplicator ref-counts the tree and array that it is currently traversing.  Furthermore, each tree and array ref-counts its successor.  This prevents a structure from being collected while there’s a mutator or duplicator that may access it.
