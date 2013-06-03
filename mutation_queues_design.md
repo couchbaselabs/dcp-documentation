@@ -56,4 +56,4 @@ Both the trees and arrays are reference counted.  Each mutator and duplicator re
 
 To handle very slow or non-responsive replicators (e.g. due to network issues), timers and memory thresholds could be used to supplement the ref-counting, so that structures are guaranteed to be collected.  If a replicator resumes after its structures have been collected, the replicator will be diverted to fetch from disk (backfill).
 
-Collection always happens from the oldest structure first (because each structure ref-counts its successor).  This design doesn’t specify whether memory is deallocated or recycled into a free list.  This is an optimization detail.
+Collection always happens from the oldest structure first (because each structure ref-counts its successor).  This design doesn’t specify whether memory is deallocated or recycled into a free list.  That is an optimization detail.
