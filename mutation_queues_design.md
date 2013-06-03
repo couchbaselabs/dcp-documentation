@@ -15,23 +15,19 @@ Each outgoing event client (replicator or persister) is given an iterator into t
 ## Design goals
 
 * Maximize concurrency
-
 * Make efficient use of memory
-
 * Minimize memory allocation and deallocation
-
 * Effectively support both document and counters as stored values
 
 
 ## Design summary
 
-    There is a single mutation queue per partition.  Therefore, the rest of this design applies to a single partition.
+* There is a single mutation queue per partition.  Therefore, the rest of this design applies to a single partition.
+* The EP engine already maintains a hash map per partition from key (Id) to previous value and sequence number.  This hash map will be used by the mutation queue.
 
-    The EP engine already maintains a hash map per partition from key (Id) to previous value and sequence number.  This hash map will be used by the mutation queue.
+* The task for handling mutation events incoming to the queue is called a mutator.  There is a single mutator per queue.
 
-    The task for handling mutation events incoming to the queue is called a mutator.  There is a single mutator per queue.
-
-    A task for handling mutation events outgoing from the queue is called a duplicator.  Replicators and persisters are types of duplicators (identical clients from the queue’s perspective).  There are multiple concurrent duplicators per queue.
+* A task for handling mutation events outgoing from the queue is called a duplicator.  Replicators and persisters are types of duplicators (identical clients from the queue’s perspective).  There are multiple concurrent duplicators per queue.
 
     The design makes a distinction between stored values that are counters vs. those that aren’t. Here we refer to counters as counters, and to non-counters as documents (although they could be any non-counter value).
 
