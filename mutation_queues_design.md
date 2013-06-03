@@ -1,8 +1,8 @@
-Mutation Queues
+# Mutation Queues
 
 This document presents a design for mutation queues in EP Engine and UPR.  It addresses the spec (https://github.com/couchbaselabs/cbupr/blob/master/spec.md) and is consistent with the design goals (with some departure in implementation) at https://github.com/couchbaselabs/cbupr/blob/master/upr_design_spec.md.
 
-Requirements summary
+## Requirements summary
 
 EP Engine is a layer between memcached memory cache and CouchStore persistent storage.  EP Engine receives mutation events from memcached and/or clients (creation, modification, and deletion of data) and must support persistence and replication of these events.  Mutation queues manage these events.
 
@@ -12,7 +12,7 @@ Each event contains a key (Id), a sequence number, and possibly a value.  Sequen
 
 Each outgoing event client (replicator or persister) is given an iterator into the mutation queue, beginning at its requested position (sequence number).  The iterator is coordinated with the mutation queue and is able to iterate and provide data opaquely to the outgoing event client.
 
-Design goals
+## Design goals
 
     Maximize concurrency
 
@@ -23,7 +23,7 @@ Design goals
     Effectively support both document and counters as stored values
 
 
-Design Summary
+## Design Summary
 
     There is a single mutation queue per partition.  Therefore, the rest of this design applies to a single partition.
 
@@ -54,8 +54,9 @@ Design Summary
     Each iterator maintains a cursor into both lists (thus two cursors per iterator).  When returning the next event, an iterator compares the sequence numbers of both cursors and returns the lower of the two.
 
 
-Design Details
-Reference counting
+## Design Details
+
+### Reference counting
 
 Both the trees and arrays are reference counted.  Each mutator and duplicator ref-counts the tree and array that it is currently traversing.  Furthermore, each tree and array ref-counts its successor.  This prevents a structure from being collected while there’s a mutator or duplicator that may access it.
 
