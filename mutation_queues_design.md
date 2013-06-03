@@ -21,33 +21,33 @@ Each outgoing event client (replicator or persister) is given an iterator into t
 
 ## Design summary
 
-* There is a single mutation queue per partition.  Therefore, the rest of this design applies to a single partition.
+1. There is a single mutation queue per partition.  Therefore, the rest of this design applies to a single partition.
 
-* The EP engine already maintains a hash map per partition from key (Id) to previous value and sequence number.  This hash map will be used by the mutation queue.
+1. The EP engine already maintains a hash map per partition from key (Id) to previous value and sequence number.  This hash map will be used by the mutation queue.
 
-* The task for handling mutation events incoming to the queue is called a mutator.  There is a single mutator per queue.
+1. The task for handling mutation events incoming to the queue is called a mutator.  There is a single mutator per queue.
 
-* A task for handling mutation events outgoing from the queue is called a duplicator.  Replicators and persisters are types of duplicators (identical clients from the queue’s perspective).  There are multiple concurrent duplicators per queue.
+1. A task for handling mutation events outgoing from the queue is called a duplicator.  Replicators and persisters are types of duplicators (identical clients from the queue’s perspective).  There are multiple concurrent duplicators per queue.
 
-* The design makes a distinction between stored values that are counters vs. those that aren’t. Here we refer to counters as counters, and to non-counters as documents (although they could be any non-counter value).
+1. The design makes a distinction between stored values that are counters vs. those that aren’t. Here we refer to counters as counters, and to non-counters as documents (although they could be any non-counter value).
 
-* The queue maintains 2 separate lists of data structures: one for counters and another for documents.
+1. The queue maintains 2 separate lists of data structures: one for counters and another for documents.
 
-* The counter list is a list of balanced binary tree maps, while the document list is a list of fixed-size arrays.  Both the trees and the arrays are ref-counted (details below).
+1. The counter list is a list of balanced binary tree maps, while the document list is a list of fixed-size arrays.  Both the trees and the arrays are ref-counted (details below).
 
-* Each mutation event appends to one of these 2 lists: incr and decr append to the counter list, and all other mutations append to the document list.  Therefore, the monotonically increasing sequence numbers are interspersed between the 2 lists.
+1. Each mutation event appends to one of these 2 lists: incr and decr append to the counter list, and all other mutations append to the document list.  Therefore, the monotonically increasing sequence numbers are interspersed between the 2 lists.
 
-* Both lists are searchable by sequence number in log(N) time: balanced binary trees, and (naturally) sorted arrays.
+1. Both lists are searchable by sequence number in log(N) time: balanced binary trees, and (naturally) sorted arrays.
 
-* Given an incoming event, its previous sequence number can be retrieved from the EP engine hash map.  Given its previous sequence number, the previous mutation event for that entry can be located in the counter list or document list (both lists can be searched in combined log(N) time).
+1. Given an incoming event, its previous sequence number can be retrieved from the EP engine hash map.  Given its previous sequence number, the previous mutation event for that entry can be located in the counter list or document list (both lists can be searched in combined log(N) time).
 
-* If a previous mutation event is found in the counter list (in a tree therein), that previous event is deleted from the tree (memory can be deallocated or recycled).  This may trigger a tree rebalancing (and likely some locking).  This prevents counters and incr / decr operations from consuming runaway memory.
+1. If a previous mutation event is found in the counter list (in a tree therein), that previous event is deleted from the tree (memory can be deallocated or recycled).  This may trigger a tree rebalancing (and likely some locking).  This prevents counters and incr / decr operations from consuming runaway memory.
 
-* If a previous mutation event is found in the document list (in an array therein), that event is flagged “skip”.  This is a simple boolean flag which can be stored inline or in a corresponding bit vector.  There is no locking, no structural change to the array, and no memory operation.  (The arrays also have a fixed max-size, so they never need structural changes.)  This prevents document operations from triggering excessive locking and tree maintenance.
+1. If a previous mutation event is found in the document list (in an array therein), that event is flagged “skip”.  This is a simple boolean flag which can be stored inline or in a corresponding bit vector.  There is no locking, no structural change to the array, and no memory operation.  (The arrays also have a fixed max-size, so they never need structural changes.)  This prevents document operations from triggering excessive locking and tree maintenance.
 
-* The client of the outgoing events (duplicator client) cannot distinguish between a deleted event and a skipped event.  In both cases, that event will not yielded by the iterator.
+1. The client of the outgoing events (duplicator client) cannot distinguish between a deleted event and a skipped event.  In both cases, that event will not yielded by the iterator.
 
-* Each iterator maintains a cursor into both lists (thus two cursors per iterator).  When returning the next event, an iterator compares the sequence numbers of both cursors and returns the lower of the two.
+1. Each iterator maintains a cursor into both lists (thus two cursors per iterator).  When returning the next event, an iterator compares the sequence numbers of both cursors and returns the lower of the two.
 
 ## Design details
 ### Reference counting
