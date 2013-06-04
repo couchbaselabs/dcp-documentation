@@ -49,7 +49,7 @@ Each outgoing event client (replicator or persister) is given an iterator into t
 
 1. Each iterator maintains a cursor into both lists (thus two cursors per iterator).  When returning the next event, an iterator compares the sequence numbers of both cursors and returns the lower of the two.
 
-1. *De-duplication:* If the previous mutation event is found in the most recent data structure (tree or array) in the document list or counter list, and no duplicator has read that event, then that event is updated in place, instead of being deleted or marked skip.
+1. **De-duplication:** If the previous mutation event is found in the most recent data structure (tree or array) in the document list or counter list, and no duplicator has read that event, then that event is updated in place, instead of being deleted or marked skip.
 
 ## Design details
 ### Reference counting
