@@ -1,5 +1,8 @@
 # Introduction
 
+See also the framing layer spec (for how requests are paired with
+responses and streams are managed): [framing.html](framing.html)
+
 ## Motivation
 
 The current replication protocol for Couchbase was designed for the
