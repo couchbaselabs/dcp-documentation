@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+</head>
+<body>
+<h2 id="framing">Framing</h2>
+<p>Request, Response, and Stream Message bodies are protobuf encoded.</p>
+<h3 id="message-types">Message Types</h3>
+<p>Type is a single byte (u8)</p>
+<pre><code>REQUEST = 1:
+    RqID(u16) BodyLen(u32) Body
+    // Paired with a response
+
+RESPONSE = 2:
+    RqID(u16) BodyLen(u32) Body
+
+    // The stream IDs started by a response are included here so
+    // that a relaying / proxy layer can pair streams to clients.
+
+STREAM_BEGIN = 3:
+    StreamID(u16) RqId(u16)
+
+    // All streams MUST send their STREAM_BEGIN before the
+    // associated RESPONSE is sent
+
+STREAM_MESSAGE = 4:
+    StreamID(u16) BodyLen(u32) Body
+
+STREAM_CLOSE = 5:
+    StreamID(u16)
+
+REQUEST_ERRONLY = 6:
+    RqID(u16) BodyLen(u32) Body
+
+    // Only response will be an error
+
+    // Perhaps require that RqID is smaller than
+    // some size so proxies can do non-tabling
+    // client-request pairing for these, since
+    // they may not have responses and can&#39;t
+    // be cleaned out.</code></pre>
+</body>
+</html>

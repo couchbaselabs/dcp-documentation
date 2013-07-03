@@ -1,0 +1,69 @@
+digraph {
+    //node[shape="rect"];
+
+    subgraph clusterC {
+        label="Client Flow";
+        start [label="Connected", shape="doublecircle"];
+        sendsrq [label="Send Stream Request", shape="rect"];
+        rollback [label="Roll back to\nseq# N or below"];
+        snapbegin [label="Snasphot Begin"];
+        items [label="Items\n(Exactly-Once)"];
+        snapend [label="Snapshot End"];
+
+        sbegintr [label="Receive 'Snapshot Begin'", shape=rect];
+
+        waitrepl [label="Wait for reply"];
+
+        start->sendsrq;
+        sendsrq->rollback;
+        sendsrq->waitrepl;
+        waitrepl->sbegintr;
+
+        rollback->sendsrq;
+        sbegintr->snapbegin;
+        snapbegin->items;
+        items->snapend;
+        snapend->snapbegin;
+    }
+
+    sendsrq -> recvsrq [constraint=false, style=dashed];
+    ssbmesg -> sbegintr [constraint=false, style=dashed];
+
+    subgraph clusterS {
+        label="Server Flow";
+        sstart [label="Connected", shape="doublecircle"];
+        recvsrq [shape="rect", label="Receive Stream\nRequest"];
+
+        ssmine [label="Last Seen Node\nIs Me?"];
+        sstake [label="Get Snapshot"];
+        sssend [label="Send Snapshotted\nItems"];
+
+        ssdiff [label="Last Seen Node\nIsn't me?"];
+        slookup [label="Look Up ID\nin Failover Log"];
+
+        findnext [label="Find Seq where following\nnode took over"];
+        sendrb [label="Send Rollback to Found Seq"];
+        notfound [label="No entry in failover log"];
+        sendzero [label="Send Rollback to Zero"];
+
+        slookup->findnext;
+        findnext->sendrb;
+        //sendrb->recvsrq;
+
+        slookup->notfound;
+        notfound->sendzero;
+        //sendzero->recvsrq;
+
+        ssbmesg [label="Send 'Snapshot Begin' Message"
+                 shape="rect"];
+        sstart->recvsrq;
+        recvsrq->ssmine;
+        recvsrq->ssdiff;
+        ssmine->sstake;
+        sstake->ssbmesg;
+        ssbmesg->sssend;
+        ssdiff->slookup;
+
+    }
+
+}
