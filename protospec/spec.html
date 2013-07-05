@@ -6,14 +6,17 @@
   <meta name="generator" content="pandoc" />
   <title></title>
   <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="swiss.css" type="text/css" />
 </head>
 <body>
 <div id="TOC">
 <ul>
 <li><a href="#introduction">Introduction</a><ul>
 <li><a href="#motivation">Motivation</a></li>
-<li><a href="#scope">Scope</a></li>
 <li><a href="#terminology">Terminology</a></li>
+<li><a href="#scope">Scope</a></li>
+</ul></li>
+<li><a href="#protocol">Protocol</a><ul>
 <li><a href="#message-types">Message Types</a><ul>
 <li><a href="#stream-request">Stream Request</a></li>
 <li><a href="#stream-request-response-rollback">Stream Request Response (ROLLBACK)</a></li>
@@ -26,7 +29,10 @@
 <li><a href="#the-failover-log">The failover log</a></li>
 <li><a href="#finding-a-rollback-point">Finding a rollback point</a></li>
 </ul></li>
-<li><a href="#flow">Flow</a></li>
+<li><a href="#flow">Flow</a><ul>
+<li><a href="#client-flow">Client Flow</a></li>
+<li><a href="#server-flow">Server Flow</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </div>
@@ -34,9 +40,6 @@
 <p>See also the framing layer spec (for how requests are paired with responses and streams are managed): <a href="framing.html">framing.html</a></p>
 <h2 id="motivation"><a href="#motivation">Motivation</a></h2>
 <p>The current replication protocol for Couchbase was designed for the needs of a clustered key-value store. As we've added functionality like indexing and cross datacenter replication, as well as integration with other systems, like Hadoop and ElasticSearch, ... something something (copy edit me help plz)</p>
-<h2 id="scope"><a href="#scope">Scope</a></h2>
-<p>The new intra-cluster replication protocol should provide an ordering of events in a partition, even across cluster topology changes. This allows a client of the protocol to correctly resume from where it left off, avoiding unnecessary network load or index computation.</p>
-<p>The protocol should also specify how to handle cases where components in the cluster disagree on the history events in a partition.</p>
 <h2 id="terminology"><a href="#terminology">Terminology</a></h2>
 <dl>
 <dt>Partition (sometimes called vBucket)</dt>
@@ -52,11 +55,15 @@
 <dd><p>Whenever a node becomes the master node for a partition, if it was not the farthest ahead of all processes watching events on that partition and starts taking mutations, it is possible it will reuse sequence numbers that other processes have already seen on this partition.</p>
 </dd>
 </dl>
+<h2 id="scope"><a href="#scope">Scope</a></h2>
+<p>The new intra-cluster replication protocol should provide an ordering of events in a partition, even across cluster topology changes. This allows a client of the protocol to correctly resume from where it left off, avoiding unnecessary network load or index computation.</p>
+<p>The protocol should also specify how to handle cases where components in the cluster disagree on the history events in a partition.</p>
+<h1 id="protocol"><a href="#protocol">Protocol</a></h1>
 <h2 id="message-types"><a href="#message-types">Message Types</a></h2>
 <h3 id="stream-request"><a href="#stream-request">Stream Request</a></h3>
 <p>A client is requesting the event stream for a partition since some sequence. It sends the known versions of the partition, with the most recent one it was connected to first.</p>
 <p>If the client's most recently connected-to version for the partition is <em>not</em> the current one on the server, the server will determine how far the client must roll back to sync up with the now current version of this partition.</p>
-<p>Clients that try to stay connected as often as possible likely only need to keep the most recent partition version for the partitions they are watching, whereas clients that connect rarely (for example, a backup process), may want to keep several partition versions, which allows for finding a better rollback point than zero when multiple history branches have occured since the last time the client was connected.</p>
+<p>Clients that try to stay connected as often as possible likely only need to keep the most recent partition version for the partitions they are watching, whereas clients that connect rarely (for example, a backup process), may want to keep several partition versions, which allows for finding a better rollback point than zero when multiple history branches have occurred since the last time the client was connected.</p>
 <h4 id="fields"><a href="#fields">Fields</a></h4>
 <ul>
 <li>Partition to stream from</li>
@@ -106,7 +113,21 @@
 <p>If none of the clients known versions can be found in the server's failover log, it must request that the client roll back to zero, that is, discard all its data for this partition and start from scratch.</p>
 <h2 id="flow"><a href="#flow">Flow</a></h2>
 <div class="figure">
-<img src="flow0.dot.svg" />
+<img src="flow0.svg" alt="Client and Server Flow" /><p class="caption">Client and Server Flow</p>
 </div>
+<h3 id="client-flow"><a href="#client-flow">Client Flow</a></h3>
+<ol style="list-style-type: decimal">
+<li>To begin receiving items for a partition, a client must send a Stream Request message, indicating the partition it wants to receive items for, the last sequence it received the last time it was connected (or 0 otherwise), and if it was connected before, the identifier for the last version of the partition it received items from.</li>
+<li><p>The client waits for a response.</p>
+<ul>
+<li><p>The client may receive an OK response, notifying it that a stream has been started on which it will receive item and snapshot messages.</p></li>
+<li>Or, the client may receive a ROLLBACK response, notifying it that there has been a history branch on this partition since it was last connected, and a sequence that must be rolled back <em>at least</em> to. The client may roll back to a sequence that is <em>earlier</em> than that sequence. The server will <strong>not</strong> send changes after a ROLLBACK response, and the client should send another Stream Request after it has completed its rollback operation if it still wants items for this partition.</li>
+</ul></li>
+<li>The client got an OK response, and begins listening for messages on the stream identified by the OK response message.</li>
+<li>The client should receive a Snapshot Begin message, indicating that the items that follow, until a Snapshot End message is received, will contain at <em>most</em> one version of any particular key, which will be the <em>latest</em> version of that key as of the sequence number included in the Snapshot Begin message.</li>
+<li>The client receives items.</li>
+<li><p>The client receives a Snapshot End message, indicating that it has now been sent the latest updates for all keys that were updated between the sequence it requested in its Stream Request and the highest sequence number in this snapshot. The client should now wait for another Snapshot Begin message (#4)</p></li>
+</ol>
+<h3 id="server-flow"><a href="#server-flow">Server Flow</a></h3>
 </body>
 </html>

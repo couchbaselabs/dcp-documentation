@@ -1,15 +1,13 @@
 all: spec.html framing.html
 
 clean:
-	rm spec.html framing.html flow0.dot.svg
+	rm spec.html framing.html flow0.svg
 
-specdias = flow0.dot.svg
-
-spec.html: the-spec.md $(specdias)
-	pandoc --toc -o spec.html -s the-spec.md
+spec.html: the-spec.md flow0.svg
+	pandoc --toc -c swiss.css -o spec.html -s the-spec.md
 
 framing.html: framing.md
-	pandoc -o framing.html -s framing.md
+	pandoc -c swiss.css -o framing.html -s framing.md
 
-%.dot.svg: %.dot
+flow0.svg: flow0.dot
 	dot -Tsvg $< > $@
