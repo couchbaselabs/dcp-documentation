@@ -43,7 +43,7 @@
 <h2 id="terminology"><a href="#terminology">Terminology</a></h2>
 <dl>
 <dt>Partition (sometimes called vBucket)</dt>
-<dd><p>Couchbase splits the key space into a fixed amount of partitions, usually 1024. That is, keys are deterministically assigned to a partition, and partitions are assigned to nodes to balance load across the cluster.</p>
+<dd><p>Couchbase splits the key space into a fixed amount of partitions, usually 1024. That is, keys are deterministically assigned to a partition, and partitions are assigned to nodes to balance load across the cluster. (renaming the field from the well established name will most likely make it harder to find information why it was created. Please see <a href="http://dustin.github.io/2010/06/29/memcached-vbuckets.html">Dustins blog post</a> describing the vbuckets)</p>
 </dd>
 <dt>Sequence Number</dt>
 <dd><p>Each data event (update, set, delete, etc.) that occurs is assigned a number that can be used to order that event against other events within the same partition. This does <em>not</em> give a cluster-wide ordering of events, but it does enable processes watching events on a partition to resume where they left off after a disconnect.</p>
