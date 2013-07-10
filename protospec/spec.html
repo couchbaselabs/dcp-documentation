@@ -12,6 +12,7 @@
 <div id="TOC">
 <ul>
 <li><a href="#introduction">Introduction</a><ul>
+<li><a href="#see-also">See Also</a></li>
 <li><a href="#motivation">Motivation</a></li>
 <li><a href="#terminology">Terminology</a></li>
 <li><a href="#scope">Scope</a></li>
@@ -37,13 +38,20 @@
 </ul>
 </div>
 <h1 id="introduction"><a href="#introduction">Introduction</a></h1>
-<p>See also the framing layer spec (for how requests are paired with responses and streams are managed): <a href="framing.html">framing.html</a></p>
+<h2 id="see-also"><a href="#see-also">See Also</a></h2>
+<ul>
+<li>Possible transport for requests/response pairs and streams): <a href="framing.html">framing.html</a>, another option would be to try to build on top of current TAP protocol.</li>
+<li>Protobuf definition to accompany the above: <a href="upr.proto">upr.proto</a></li>
+</ul>
 <h2 id="motivation"><a href="#motivation">Motivation</a></h2>
 <p>The current replication protocol for Couchbase was designed for the needs of a clustered key-value store. As we've added functionality like indexing and cross datacenter replication, as well as integration with other systems, like Hadoop and ElasticSearch, ... something something (copy edit me help plz)</p>
 <h2 id="terminology"><a href="#terminology">Terminology</a></h2>
 <dl>
 <dt>Partition (sometimes called vBucket)</dt>
-<dd><p>Couchbase splits the key space into a fixed amount of partitions, usually 1024. That is, keys are deterministically assigned to a partition, and partitions are assigned to nodes to balance load across the cluster. (renaming the field from the well established name will most likely make it harder to find information why it was created. Please see <a href="http://dustin.github.io/2010/06/29/memcached-vbuckets.html">Dustins blog post</a> describing the vbuckets)</p>
+<dd><p>Couchbase splits the key space into a fixed amount of partitions, usually 1024. That is, keys are deterministically assigned to a partition, and partitions are assigned to nodes to balance load across the cluster.</p>
+<blockquote>
+<p>Trond comments: renaming the field from the well established name will most likely make it harder to find information why it was created. Please see <a href="http://dustin.github.io/2010/06/29/memcached-vbuckets.html">Dustin's blog post</a> describing the vbuckets.</p>
+</blockquote>
 </dd>
 <dt>Sequence Number</dt>
 <dd><p>Each data event (update, set, delete, etc.) that occurs is assigned a number that can be used to order that event against other events within the same partition. This does <em>not</em> give a cluster-wide ordering of events, but it does enable processes watching events on a partition to resume where they left off after a disconnect.</p>
@@ -70,6 +78,7 @@
 <li>Sequence number to stream since</li>
 <li>Client's known versions for the partition</li>
 <li>Does the client want the entire version log?</li>
+<li>Optional identifier for the stream</li>
 </ul>
 <h3 id="stream-request-response-rollback"><a href="#stream-request-response-rollback">Stream Request Response (ROLLBACK)</a></h3>
 <p>There has been a history branch since the client was last connected, so the server sends it sequence number.</p>
@@ -121,7 +130,7 @@
 <li><p>The client waits for a response.</p>
 <ul>
 <li><p>The client may receive an OK response, notifying it that a stream has been started on which it will receive item and snapshot messages.</p></li>
-<li>Or, the client may receive a ROLLBACK response, notifying it that there has been a history branch on this partition since it was last connected, and a sequence that must be rolled back <em>at least</em> to. The client may roll back to a sequence that is <em>earlier</em> than that sequence. The server will <strong>not</strong> send changes after a ROLLBACK response, and the client should send another Stream Request after it has completed its rollback operation if it still wants items for this partition.</li>
+<li>Or, the client may receive a ROLLBACK response, notifying it that there has been a history branch on this partition since it was last connected, and a sequence that must be rolled back <em>at least</em> to. The client may roll back to a sequence that is <em>earlier</em> than that sequence. The server will <strong>not</strong> send changes after a ROLLBACK response, and the client should send another Stream Request after it has completed its rollback operation if it still wants items for this partition. If the client is keeping a partition version history (such as if the client is a replica), it MUST discard any entries with a sequence number higher than the sequence it rolled back to.</li>
 </ul></li>
 <li>The client got an OK response, and begins listening for messages on the stream identified by the OK response message.</li>
 <li>The client should receive a Snapshot Begin message, indicating that the items that follow, until a Snapshot End message is received, will contain at <em>most</em> one version of any particular key, which will be the <em>latest</em> version of that key as of the sequence number included in the Snapshot Begin message.</li>
@@ -129,5 +138,17 @@
 <li><p>The client receives a Snapshot End message, indicating that it has now been sent the latest updates for all keys that were updated between the sequence it requested in its Stream Request and the highest sequence number in this snapshot. The client should now wait for another Snapshot Begin message (#4)</p></li>
 </ol>
 <h3 id="server-flow"><a href="#server-flow">Server Flow</a></h3>
+<ol style="list-style-type: decimal">
+<li>A client asks for items for a partition, and includes the version(s) of the partition that it has been recently connected to.
+<ul>
+<li>If the client's most recently connected version is not the version the server is serving, look up the versions the client provided in the server's copy of the history (failover log). Send a ROLLBACK message with the sequence of the entry <em>after</em> latest entry found. Once the client has rolled back it should send a <em>new</em> request, because the server cannot know how far the client will roll back. The client MUST roll back at <em>least</em> to the sequence sent in the rollback message, but <em>MAY</em> roll back farther.</li>
+</ul></li>
+<li>Otherwise, snapshot items around the client's current sequence, and send a Snapshot Begin message, telling the client the ending sequence of the snapshot.
+<ul>
+<li>If the client is behind (that is the sequence it's currently reading from is already persisted to disk), this can be a snapshot <em>only</em> of storage. Once the client gets ahead of storage this will likely <em>only</em> need to be a snapshot of unpersisted items.</li>
+</ul></li>
+<li>Send the snapshotted items</li>
+<li>Send a Snapshot End message, and acquire a new snapshot, above the last key sent. (Back to #2)</li>
+</ol>
 </body>
 </html>

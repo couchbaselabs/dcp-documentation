@@ -23,6 +23,9 @@ message UprRequest {
 message UprStreamRequest {
     required uint32 partition = 1;
     repeated string nodeids = 2;
+    // Identifier that could be used in control requests from the management
+    // layer, to cancel streams or monitor their progress.
+    optional string group_id = 3;
 }
 
 message UprStreamResponse {
