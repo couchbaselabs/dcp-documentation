@@ -31,6 +31,7 @@ message PartitionVersion {
 message UprStreamRequest {
     required uint32 partition = 1; // vbucket!
     required uint64 start_seq = 2;
+    optional uint64 end_seq = 6;
     repeated PartitionVersion partition_versions = 3;
     // Identifier that could be used in control requests from the management
     // layer, to cancel streams or monitor their progress.
@@ -46,6 +47,7 @@ message UprStreamResponse {
         ROLLBACK = 2;
         NOT_MY_VBUCKET = 3; // NOT_MY_PARTITION
         //Other errors?
+        YOU_ARE_NOW_MASTER = 4; // maybe?
     }
     required Type type = 1;
     optional uint64 rollback_seq = 2;
@@ -60,11 +62,15 @@ message UprStreamMessage {
         SNAPSHOT_START = 1;
         // Snapshot end has no body.
         SNAPSHOT_END = 2;
-        ITEM = 3;
+        // MUTATION, DELETION, EXPIRATION all map to Item
+        MUTATION = 3;
+        DELETION = 4;
+        EXPIRATION = 5;
     }
     required Type type = 1;
     optional SnapshotStart start_message = 2;
-    optional Item item_message = 3;
+    // For mutation, deletion, expiration types
+    optional Item item = 3;
 }
 
 message SnapshotStart {
@@ -73,8 +79,11 @@ message SnapshotStart {
 
 message Item {
     required string key = 1;
-    optional bool deleted = 2 [default = false];
-    optional bytes body = 3;
-    // Metadata here
+    required uint64 sequence = 2;
+    optional uint64 expiration = 3;
+    optional uint64 cas = 4;
+    optional uint32 flags = 5;
+    optional uint64 rev_seq = 6;
+    optional bytes body = 9;
 }
 
