@@ -13,19 +13,29 @@ message CBRequest {
 // -------
 
 message UprRequest {
-    enum Type {
+    enum RequestType {
         UPR_STREAM_REQUEST = 1;
     }
-    required Type type = 1;
-    optional bytes body = 2;
+    required RequestType type = 1;
+    // body types
+    optional UprStreamRequest stream_request = 2;
+}
+
+message PartitionVersion {
+    // Make sure not to reuse!
+    required uint64 UUID = 1;
+    // High sequence when this version was created
+    required uint64 sequence = 2;
 }
 
 message UprStreamRequest {
-    required uint32 partition = 1;
-    repeated string nodeids = 2;
+    required uint32 partition = 1; // vbucket!
+    required uint64 start_seq = 2;
+    repeated PartitionVersion partition_versions = 3;
     // Identifier that could be used in control requests from the management
     // layer, to cancel streams or monitor their progress.
-    optional string group_id = 3;
+    optional string group_id = 4;
+    optional bool want_failover_log = 5;
 }
 
 message UprStreamResponse {
@@ -34,10 +44,12 @@ message UprStreamResponse {
         OK_STREAMING = 1;
         // Please roll back to at least rollback_seq
         ROLLBACK = 2;
-        NOT_MY_VBUCKET = 3;
+        NOT_MY_VBUCKET = 3; // NOT_MY_PARTITION
+        //Other errors?
     }
     required Type type = 1;
     optional uint64 rollback_seq = 2;
+    repeated PartitionVersion current_versions = 3;
 }
 
 // UPR STREAM MESSAGES
@@ -51,7 +63,8 @@ message UprStreamMessage {
         ITEM = 3;
     }
     required Type type = 1;
-    optional bytes body = 2;
+    optional SnapshotStart start_message = 2;
+    optional Item item_message = 3;
 }
 
 message SnapshotStart {
@@ -61,7 +74,7 @@ message SnapshotStart {
 message Item {
     required string key = 1;
     optional bool deleted = 2 [default = false];
+    optional bytes body = 3;
     // Metadata here
-    optional bytes body = 99;
 }
 
