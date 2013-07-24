@@ -130,7 +130,7 @@ An item got inserted on a certain node which went done before the Indexer could 
 
 The stateless RYOW blocks the *insert* until it got indexed by *all* view groups. It will ensure that every subsequent request on a View will contain that newly inserted item.
 
-Being indexed by all view groups can take a long time as even indexes that are rarely used need to be udpated, as you don't know at insertion time, which view will be queried by the client next. It will be only as fast as the slowest indexer is.
+Being indexed by all view groups can take a long time as even indexes that are rarely used need to be updated, as you don't know at insertion time, which view will be queried by the client next. It will be only as fast as the slowest indexer is.
 
 This means that it won't scale with an increasing number of design documents (or larger numbers of indexes per design document).
 
