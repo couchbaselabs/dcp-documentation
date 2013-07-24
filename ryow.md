@@ -1,0 +1,199 @@
+Read Your Own Write
+===================
+
+This spec is about a low latency way to read back a piece of data from a view that a client just stored in the bucket.
+
+Terminology
+-----------
+
+### Bucket
+
+### View
+
+An single index on top of the bucket. It can be a mapreduce or a spatial view.
+
+### View Group
+
+A view group is a collection of views for one Bucket. In Couchbase there's one view group for every type of index (mapreduce or spatial) per production design document (development views are a special case that don't matter for this specification).
+
+### Stateful
+
+### Stateless
+
+### Item
+
+An item is a data entry with a key and a value.
+
+### Insert
+
+An insert either creates a new item or an updates an existing one.
+
+### RYOW
+
+Read your own write
+
+### ACK
+
+### Sequence Number
+
+See UPR spec
+
+### Partition
+
+See UPR spec
+
+### Partition Version
+
+See UPR spec
+
+Specification
+-------------
+
+There are two modes to achieve read your own write. One is stateful, it will have lower overall latency, the other one is stateless. The stateless can only be used for a small number of view groups.
+
+### Client/server architecture
+
+Throughout the spec there's a common architecture of the system, that consists of four parts:
+
+#### Client
+
+In a typical web application the client will be the browser. It interacts through HTTP with the Application.
+
+### Application
+
+The Application is the business logic that runs server-sided and call out to Couchbase. Couchbase itself consists of two parts, the Storage and the Indexer.
+
+### Storage
+
+The storage is the key-value part of Couchbase. It doesn't matter whether the data is persisted on disk. Once it is in the cache, we consider it as "stored".
+
+### Indexer
+
+The Indexer gets its data from the Storage and prepares it for querying. Currently mapreduce and spatial indexers are supported. The result an indexer produces is called view.
+
+The Indexer might be on the same physical machine as the Storage.
+
+
+### Stateful RYOW
+
+The lower latency of the stateful RYOW comes from the fact that the client is not blocked when inserting an item. The read/write cycle is split into two phases. When the item is stored only an ACK is returned, a subsequent request will block until it is available in the view group.
+
+The following sequence diagram will explain it in more detail.
+
+    +------+    +-----------+         +-------+  +-------+
+    |Client|    |Application|         |Storage|  |Indexer|
+    +--+---+    +-----+-----+         +---+---+  +---+---+
+       |              |                   |          |
+       |1. Insert item|                   |          |
+       |------------->|                   |          |
+       |              |   2. Insert item  |          |
+       |              |------------------>|          |
+       |              |                   |          |
+       |              |3. seq_num/part_ver|          |
+       |              |<------------------|          |
+       | 4. Success   |                   |          |
+       |<-------------|                              |
+       |              |                              |
+       |              |                              |
+       | 5. Get View  |                              |
+       |------------->|                              |
+       |              | 6. Get View/seq_num/part_ver |
+       |              | (triggers view group update) |
+       |              |----------------------------->|
+       |              |                              |---+ 7. Block until
+       |              |                              |   | seq_num/partition
+       |              |                              |   | is indexed by the
+       |              |           8. View            |<--+ view group
+       |              |<-----------------------------|
+       |  9. View     |                              |
+       |<-------------|                              |
+       |              |                              |
+
+
+1. Insert item request from the Client to the Application.
+2. The Application makes the actual insert request to the Storage
+3. The Storage returns the sequence number of the item and the partition version where it is stored.
+4. The Application store the sequence number and the partition version of the item and returns a success to the Client.
+**TODO vmx 2013-07-23**: multi-set.
+5. The Client requests a view from the Application where that just inserted item should be included.
+6. The Application knows the items that should be included in the response. The Application then requests from the Indexer the view with the information of the minimal sequence number a partition must have indexed on already.
+7. The response is blocked by the Indexer until all partitions have indexed up to the requested sequence number.
+8. Once that requirement is fulfilled, the Indexer returns the view to the Application.
+9. The Application processes the view as needed and sends the final response back to the client.
+
+#### View group updates
+
+View group updates can not only be triggered by requesting a view, but also by the auto-updater, manually or some external process. This means that such an update can happen between the first Client request (1) and the second one (5). If that update already led the view group to index the new the item, step (7) is a no-op and the view is returned as is.
+
+#### Failures
+
+An item got inserted on a certain node which went done before the Indexer could index it. If a view is requested it will find out that the transmitted UUID from the partition version, doesn't match the index any longer. Hence an error will be returned.
+
+
+### Stateless RYOW
+
+The stateless RYOW blocks the *insert* until it got indexed by *all* view groups. It will ensure that every subsequent request on a View will contain that newly inserted item.
+
+Being indexed by all view groups can take a long time as even indexes that are rarely used need to be udpated, as you don't know at insertion time, which view will be queried by the client next. It will be only as fast as the slowest indexer is.
+
+This means that it won't scale with an increasing number of design documents (or larger numbers of indexes per design document).
+
+The following sequence diagram will explain it in more detail.
+
+    +------+    +-----------+         +-------+  +-------+
+    |Client|    |Application|         |Storage|  |Indexer|
+    +--+---+    +-----+-----+         +---+---+  +---+---+
+       |              |                   |          |
+       |1. Insert item|                   |          |
+       |------------->|                   |          |
+       |              |   2. Insert item  |          |
+       |              |------------------>|          |
+       |              |                   |          |
+       |              |3. seq_num/part_ver|          |
+       |              |<------------------|          |
+       | 4. Store +---|                   |          |
+       | seq_num/ |   |                              |
+       |partition +-->|     5. Trigger update on     |
+       |              |     ALL view groups          |
+       |              |----------------------------->|
+       |              |                              |---+ 6. Block until
+       |              |                              |   | seq_num/partition
+       |              |                              |   | is indexed by ALL
+       |              |          7. Success          |<--+ view groups
+       |              |<-----------------------------|
+       |  8. Success  |                              |
+       |<-------------|                              |
+       |              |                              |
+       | 9. Get View  |                              |
+       |------------->|                              |
+       |              |         10. Get View         |
+       |              |----------------------------->|
+       |              |           11. View           |
+       |              |<-----------------------------|
+       |   12. View   |                              |
+       |<-------------|                              |
+       |              |                              |
+
+
+1. Insert item request from the Client to the Application.
+2. The Application makes the actual insert request to the Storage
+3. The Storage returns the sequence number of the item and the partition version where it is stored.
+4. The Application store the sequence number and the partition version of the item.
+5. The Application then triggers an update of *all* view groups with the information of the minimal sequence number a partition must have indexed on already.
+6. The response is blocked by the Indexer until all partitions of all view groups have indexed up to the requested sequence number.
+7. Once that requirement is fulfilled, the Indexer returns success to the Application.
+8. The Application returns a success to the Client.
+9. The Client requests a view from the Application where that just inserted item should be included.
+10. The Application requests the view from the Indexer
+11. The indexer immediately response with the view, as it is ensured that the newly inserted item was already indexed.
+12. The Application processes the view as needed and sends the final response back to the client.
+
+
+Notes
+-----
+
+This section is for personal notes that don't belong into the specification, but should be heard.
+
+### Volker Mische
+
+In my opinion the stateless RYOW doesn't make sense as you don't want to block inserts. What you really want to block is view requests. Exactly that can be achieved with the stateful RYOW.
