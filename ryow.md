@@ -8,17 +8,15 @@ Terminology
 
 ### Bucket
 
+A bucket keeps a certain set of items. Views can only index items within the same bucket.
+
 ### View
 
 An single index on top of the bucket. It can be a mapreduce or a spatial view.
 
 ### View Group
 
-A view group is a collection of views for one Bucket. In Couchbase there's one view group for every type of index (mapreduce or spatial) per production design document (development views are a special case that don't matter for this specification).
-
-### Stateful
-
-### Stateless
+A view group is a collection of views for one bucket. In Couchbase there's one view group for every type of index (mapreduce or spatial) per production design document (development views are a special case that don't matter for this specification).
 
 ### Item
 
@@ -30,21 +28,20 @@ An insert either creates a new item or an updates an existing one.
 
 ### RYOW
 
-Read your own write
-
-### ACK
+Read your own write.
 
 ### Sequence Number
 
-See UPR spec
+See UPR spec.
 
 ### Partition
 
-See UPR spec
+See UPR spec.
 
 ### Partition Version
 
-See UPR spec
+See UPR spec.
+
 
 Specification
 -------------
@@ -76,7 +73,7 @@ The Indexer might be on the same physical machine as the Storage.
 
 ### Stateful RYOW
 
-The lower latency of the stateful RYOW comes from the fact that the client is not blocked when inserting an item. The read/write cycle is split into two phases. When the item is stored only an ACK is returned, a subsequent request will block until it is available in the view group.
+The lower latency of the stateful RYOW comes from the fact that the client is not blocked when inserting an item. The read/write cycle is split into two phases. When the item is stored only the success is returned, a subsequent request will block until it is available in the view group.
 
 The following sequence diagram will explain it in more detail.
 
