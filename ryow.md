@@ -113,8 +113,7 @@ The following sequence diagram will explain it in more detail.
 1. Insert item request from the Client to the Application.
 2. The Application makes the actual insert request to the Storage
 3. The Storage returns the sequence number of the item and the partition version where it is stored.
-4. The Application store the sequence number and the partition version of the item and returns a success to the Client.
-**TODO vmx 2013-07-23**: multi-set.
+4. The Application store the sequence number and the partition version of the item and returns a success to the Client. If multiple items are stored, it's only needed to store the highest sequence number for every partition.
 5. The Client requests a view from the Application where that just inserted item should be included.
 6. The Application knows the items that should be included in the response. The Application then requests from the Indexer the view with the information of the minimal sequence number a partition must have indexed on already.
 7. The response is blocked by the Indexer until all partitions have indexed up to the requested sequence number.
@@ -177,7 +176,7 @@ The following sequence diagram will explain it in more detail.
 
 1. Insert item request from the Client to the Application.
 2. The Application makes the actual insert request to the Storage
-3. The Storage returns the sequence number of the item and the partition version where it is stored.
+3. The Storage returns the sequence number of the item and the partition version where it is stored. If multiple items are stored, it's only needed to store the highest sequence number for every partition.
 4. The Application store the sequence number and the partition version of the item.
 5. The Application then triggers an update of *all* view groups with the information of the minimal sequence number a partition must have indexed on already.
 6. The response is blocked by the Indexer until all partitions of all view groups have indexed up to the requested sequence number.
