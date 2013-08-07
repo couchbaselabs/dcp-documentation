@@ -125,6 +125,18 @@ View group updates can not only be triggered by requesting a view, but also by t
 
 An item got inserted on a certain node which went done before the Indexer could index it. If a view is requested it will find out that the transmitted UUID from the partition version, doesn't match the index any longer. Hence an error will be returned.
 
+#### Advantages
+
+ - The insert isn't blocked by the indexer. Hence complex indexing is possible without having a slow down on the inserts.
+ - A failure on the indexing doesn't have an impact on the data insertion
+ - You pay the indexing cost on queries, not the insertion
+ - Only the index you query needs to get updated
+ - The behaviours described below can be emulated by the client libraries Couchbase provides
+
+#### Disadvantages
+
+ - The application becomes more complex then with the other approaches (though that complexity can easily be hidden by the client libraries Couchbase provides)
+
 
 ### Stateless RYOW
 
@@ -179,17 +191,83 @@ The following sequence diagram will explain it in more detail.
 6. The response is blocked by the Indexer until all partitions of all view groups have indexed up to the requested sequence number.
 7. Once that requirement is fulfilled, the Indexer returns success to the Application.
 8. The Application returns a success to the Client.
-9. The Client requests a view from the Application where that just inserted item should be included.
+9. The Client requests any view from the Application.
 10. The Application requests the view from the Indexer
 11. The indexer immediately response with the view, as it is ensured that the newly inserted item was already indexed.
 12. The Application processes the view as needed and sends the final response back to the client.
 
+#### Advantages
 
-Notes
------
+ - Querying the index return immediately
 
-This section is for personal notes that don't belong into the specification, but should be heard.
+#### Disadvantages
 
-### Volker Mische
+ - Failures in the Storage and Indexer get connected
+ - A failure on the indexing needs to make the insert fail, although the insert itself might have succeeded
+ - The insertion blocks until the Indexer caught up. That means slower insertion rates
+ - All indexes need to be updated, i.e. rarely used indexes slow down insertions. For example if you have user facing indexes and analitical ones, that don't need to be indexed immediately (or are complex and slow). The insertion would block until the the analytical indexes are updated as well, as you don't know which index will be queried next.
 
-In my opinion the stateless RYOW doesn't make sense as you don't want to block inserts. What you really want to block is view requests. Exactly that can be achieved with the stateful RYOW.
+
+Blocking RYOW
+-------------
+
+The application doesn't need any code, the server blocks the inserts until all index are updated. This is similar to the consistency that ACID compliant databases guarantee.
+
+    +------+    +-----------+      +-------+            +-------+
+    |Client|    |Application|      |Storage|            |Indexer|
+    +--+---+    +-----+-----+      +---+---+            +---+---+
+       |              |                |                    |
+       |1. Insert item|                |                    |
+       |------------->|                |                    |
+       |              | 2. Insert item |                    |
+       |              |--------------->|                    |
+       |              |                |                    |
+       |              |            +---|                    |
+       |              |3. seq_num/ |   |                    |
+       |              |   part_ver |   |                    |
+       |              |            +-->|4. Trigger update on|
+       |              |                |  ALL view groups   |
+       |              |                |------------------->|
+       |              |                |                    |---+ 5. Block until
+       |              |                |                    |   | seq_num/partition
+       |              |                |                    |   | is indexed by ALL
+       |              |                |     6. Success     |<--+ view groups
+       |              |                |<-------------------|
+       |              |   7. Success   |                    |
+       |              |<---------------|                    |
+       |  8. Success  |                |                    |
+       |<-------------|                                     |
+       |              |                                     |
+       | 9. Get View  |                                     |
+       |------------->|                                     |
+       |              |            10. Get View             |
+       |              |------------------------------------>|
+       |              |              11. View               |
+       |              |<------------------------------------|
+       |   12. View   |                                     |
+       |<-------------|                                     |
+       |              |                                     |
+
+1. Insert item request from the Client to the Application.
+2. The Application makes the actual insert request to the Storage
+3. The Storage keeps the sequence number of the item and the partition version where it is stored. If multiple items are stored, it's only needed to store the highest sequence number for every partition.
+4. The storage then triggers an update of *all* view groups with the information of the minimal sequence number a partition must have indexed on already.
+5. The response is blocked by the Indexer until all partitions of all view groups have indexed up to the requested sequence number.
+6. Once that requirement is fulfilled, the Indexer returns success to the Storage.
+7. The Storage returns success to the Application.
+8. The Application returns a success to the Client.
+9. The Client requests any view from the Application.
+10. The Application requests the view from the Indexer.
+11. The indexer immediately response with the view, as it is ensured that the newly inserted item was already indexed.
+12. The Application processes the view as needed and sends the final response back to the client.
+
+#### Advantages
+
+ - The same advantages as the stateless RYOW
+ - The Application code becomes simpler
+
+#### Disadvantages
+
+ - All disadvantages from the stateless RYOW
+ - The storage on the server side needs to care about indexers (i.e. more complexity on the server sided code)
+
