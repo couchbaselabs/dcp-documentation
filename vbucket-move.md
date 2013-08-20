@@ -3,11 +3,11 @@
 
 In order to demonstrate how a VBucket move works in Couchbase 3.x let's assume that we have a two node cluster that consists of Node A and Node B and that we want to rebalance Node B out of the cluster. Figure 1 below shows the inital state of the cluster. Each node contains two active and two replica VBuckets and there is a single outgoing replication stream that connects each node.
 
-![Figure 1](../../images/vb_move_figure_1.jpg)
+![Figure 1](images/vb_move_figure_1.jpg)
 
 When the rebalance is started the cluster manager will first generate a new VBucket map called the fast-forward map. This map contains the future locations of all VBuckets once the rebalance has finished. Since we are going from a two node cluster to a one node cluster the fast-forward map will simply show all active VBuckets being moved to Node A. Once the fast-forward map has been generated the cluster manager will come up with a plan for how to move the VBuckets that minimizes the risk of data loss if there are failures during the rebalance. For this example we will assume that the first thing the cluster manager plans to do is move VBucket 1 from Node B to Node A. In order to do this the cluster manager will begin by sending a "Change VBucket Filter" command to the replication stream for Vbucket 1 and 3 on Node B telling Node B that it needs to remove VBucket 1 from the replication stream. Once VBucket 1 has been removed from the stream the cluster manager will create a separate replica building stream in order to monitor the progress of the VBucket move for VBucket 1. Figure 2 shows the resulting state of the cluster after these operations take place.
 
-![Figure 2](../../images/vb_move_figure_2.jpg)
+![Figure 2](images/vb_move_figure_2.jpg)
 
 One thing to note here is that this example only requires a single replica building stream because there is only one other node that VBucket 1 needs to be transferred to. If there are multiple nodes that the VBucket needs to be moved to then their would be multiple replica building streams.
 
@@ -15,6 +15,6 @@ Once the replica building stream has been established between Node A and Node B 
 
 The cluster manager makes sure that the indexer is up to date by pausing the indexer for VBucket 1 on Node B and getting the last sequence number that was indexed for VBucket 1. The cluster manager will then wait until it sees that Node A for VBucket 1 has seen the sequence number last indexed for VBucket 1 on Node B. It will also make sure that this sequence number has been seen by the indexer on Node A. When this event takes place the cluster manager can be sure that the indexer on Node A has at least as much data in its index as the indexer on Node B. This process is shown in figure 3 below.
 
-![Figure 2](../../images/vb_move_figure_4.jpg)
+![Figure 2](images/vb_move_figure_4.jpg)
 
 Once the cluster manager on Node A has seen at least as many items as the indexer on Node B then the cluster manager can start the process of switching the VBucket states on each node in order to complete the VBucket move. The cluster manager does this by sending a "Takeover Command" to the the replica building stream on Node B. This will cause the stream to record the last sequence number it has seen and then wait until it has sent over all of the items up to and including the item with that sequence number. After all of these items are sent Node B will send a "Set Vbucket State" message to Node A in order to set VBucket 1 on Node A to pending state. Once Node B sees this event take place it will set its VBucket 1 to dead state and then send the remaining items that it has over to the Node A. After the last item is sent we can be sure that all data has been moved to Node A. Node B now needs to transfer active ownership of VBucket 1 to Node A and does this by sending another "Set VBucket State" message in order to set VBucket 1 on Node A to active. This last "Set Vbucket State" message will need to be acknowledged by Node B in order to make sure that Node A received the message and once the acknowledgement is received Node B will close the connection. This process will then continue until all VBuckts have been moved to the node specified in the cluster managers fast-forward map.
