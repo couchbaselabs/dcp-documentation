@@ -1,3 +1,0 @@
-[submodule "protospec/external/pcb"]
-	path = protospec/external/pcb
-	url = git://github.com/couchbaselabs/pcb
