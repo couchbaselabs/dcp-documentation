@@ -538,7 +538,7 @@ There is already a client load on the master.
 
 The replicas pull the master log and apply it to it's storage.
 
-![](FailoverImages/Canvas%201.png)
+![Figure 1](images/failover-1.png)
 
 ### Begin streaming mutations
 
@@ -546,7 +546,7 @@ Master server A has set into it's memory 5 mutations, which it has not yet persi
 
 Replica B starts streaming from sequence 0. The master snapshots the unpersisted mutations through seq 5, and starts sending them to the replica.
 
-![](FailoverImages/Canvas%202.png)
+![Figure 2](images/failover-2.png)
 
 ### Continue streaming mutations
 
@@ -556,7 +556,7 @@ Replica B is still streaming from sequence 0 to 5, it has already persisted thro
 
 Replica C starts streaming from sequence 0. The master snapshots the mutations and starts sending them to the replica.
 
-![](FailoverImages/Canvas%203.png)
+![Figure 3](images/failover-3.png)
 
 ### Continue streaming mutations, next snapshot
 
@@ -566,19 +566,19 @@ Replica B has finished streaming the snapshot and persisted all mutations. It pe
 
 Replica C has finished streaming the snapshot and persisted all mutations. It persists it's last snapshot sequence at 8.
 
-![](FailoverImages/Canvas%205.png)
+![Figure 4](images/failover-4.png)
 
 ### Master goes down
 
 Master server A dies/becomes unresponsive. It's removed from the cluster.
 
-![](FailoverImages/Canvas%207.png)
+![Figure 5](images/failover-5.png)
 
 ### Replica becomes Master
 
 Replica B becomes Master server B. It generates a new entry in the failover log, noting the high sequence of the last complete snapshot it persisted.
 
-![](FailoverImages/Canvas%208.png)
+![Figure 6](images/failover-6.png)
 
 ### Replicas recognize new master
 
@@ -588,7 +588,7 @@ New Replica D gets the log and saves it.
 
 Existing Replica C connects to new master and gets the failover log to compare with it's own.
 
-![](FailoverImages/Canvas%209.png)
+![Figure 7](images/failover-7.png)
 
 ### Replica C repairs master and rolls back to common snapshot sequence
 
@@ -598,10 +598,10 @@ Replica C discovers it has mutations possibly not on the master. It will repair 
 
 It applies to its storage the masters version of any documents it couldn't repair, preserving all metadata and sequence numbers. It then persists it's new last snapshot number and the failover log into storage.
 
-![](FailoverImages/Canvas%2012.png)
+![Figure 8](images/failover-8.png)
 
 ### Streaming mutations from new master
 
 Both server D and server A continue to stream in mutations, continuing operations as normal.
 
-![](FailoverImages/Canvas%2013.png)
+![Figure 9](images/failover-9.png)
