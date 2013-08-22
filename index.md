@@ -49,3 +49,10 @@ we need to support upgrades from 2.x to 3.x. The link below describes how the up
 
 * [Upgrade (2.x) to (3.x)](https://docs.google.com/document/d/1GmSSGx-cmZNoNyX_83g2rydYDAtdJid2ryTzTu4c6eI)
 
+
+###Implementation Designs
+
+#####EP-Engine
+
+* [Mutation Queues](mutation_queues.md)
+* Replicator
