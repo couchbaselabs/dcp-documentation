@@ -55,11 +55,12 @@ Used to specify that the packet being recieved is a valid memcached binary proto
 
 The opcode field is used in order to specify the what type of message the client is receiving. Below are the currently available opcodes.
 
-* **Request** (1) - Sent by the consumer side to the producer specifying that the consumer want some piece of data (Ex. XDCR).
-* **Response** (2) - A producer message that is sent to the consumer for a certain requeste piece of data (Ex. XDCR).
-* **Stream Begin** (3) - Means that you will recieve multiple responses for a request.
-* **Stream Message** (4) - A single response that is contained in a stream
-* **Stream Close** (5) - Says that the stream has ended.
+* **Request** (0x50) - Sent by the consumer side to the producer specifying that the consumer want some piece of data (Ex. XDCR).
+* **Response** (0x51) - A producer message that is sent to the consumer for a certain requeste piece of data (Ex. XDCR).
+* **Stream Begin** (0x52) - Means that you will recieve multiple responses for a request.
+* **Stream Message** (0x53) - A single response that is contained in a stream
+* **Stream Close** (0x54) - Says that the stream has ended.
+* **Set VBucket State** (0x55) - Tells the consumer to change the VBuckets state.
 
 #####Key Length
 
@@ -114,7 +115,7 @@ In order to initial a stream from a vbucket the consumer must send the following
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       80      |       01      |       00      |       0E      |
+     0|       80      |       50      |       00      |       0E      |
       +---------------+---------------+---------------+---------------+
      4|       28      |       01      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -154,7 +155,7 @@ In order to initial a stream from a vbucket the consumer must send the following
     UPR Stream Request
     Field          (offset)  (value)
     Magic          (0)     : 0x80                 (Request)
-	Opcode         (1)     : 0x01                 (UPR Request)
+	Opcode         (1)     : 0x50                 (UPR Request)
     Key Length     (2-3)   : 0x000E               (14)
     Extra Length   (4)     : 0x28                 (40)
     Request Type   (5)     : 0x01                 (Stream Request)
@@ -186,7 +187,7 @@ After a consumer sends a request to the server for a stream the server can respo
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       02      |       00      |       00      |
+     0|       81      |       51      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       01      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -203,7 +204,7 @@ After a consumer sends a request to the server for a stream the server can respo
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x02                 (UPR Response)
+	Opcode         (1)     : 0x51                 (UPR Response)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x01                 (OK)
@@ -218,7 +219,7 @@ After a consumer sends a request to the server for a stream the server can respo
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       02      |       00      |       00      |
+     0|       81      |       51      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       02      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -235,7 +236,7 @@ After a consumer sends a request to the server for a stream the server can respo
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x02                 (UPR Response)
+	Opcode         (1)     : 0x51                 (UPR Response)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x02                 (Not My VBucket)
@@ -250,7 +251,7 @@ After a consumer sends a request to the server for a stream the server can respo
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       02      |       00      |       00      |
+     0|       81      |       51      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       03      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -271,7 +272,7 @@ After a consumer sends a request to the server for a stream the server can respo
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x02                 (UPR Response)
+	Opcode         (1)     : 0x51                 (UPR Response)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x03                 (Rollback)
@@ -295,7 +296,7 @@ In order to request failover log information the following packet should be sent
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       80      |       01      |       00      |       00      |
+     0|       80      |       50      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       02      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -312,7 +313,7 @@ In order to request failover log information the following packet should be sent
     UPR Request Failover Log Command
     Field        (offset) (value)
     Magic          (0)     : 0x80                 (Request)
-	Opcode         (1)     : 0x01                 (UPR Request)
+	Opcode         (1)     : 0x50                 (UPR Request)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x02                 (Failover Log Request)
@@ -329,7 +330,7 @@ The consumer should expect to receive a response from the producer that contains
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       02      |       00      |       00      |
+     0|       81      |       51      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       02      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -362,7 +363,7 @@ The consumer should expect to receive a response from the producer that contains
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x02                 (UPR Response)
+	Opcode         (1)     : 0x51                 (UPR Response)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x02                 (Failover Log Response)
@@ -398,7 +399,7 @@ After a stream has been successfully created the first packet that is seen by th
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       03      |       00      |       00      |
+     0|       81      |       52      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       00      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -415,7 +416,7 @@ After a stream has been successfully created the first packet that is seen by th
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x03                 (UPR Stream Start)
+	Opcode         (1)     : 0x52                 (UPR Stream Start)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x00
@@ -432,7 +433,7 @@ An open stream will send packets in a series of snapshots. A snaphot is simply a
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       04      |       00      |       00      |
+     0|       81      |       53      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       01      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -449,7 +450,7 @@ An open stream will send packets in a series of snapshots. A snaphot is simply a
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x04                 (UPR Stream Message)
+	Opcode         (1)     : 0x53                 (UPR Stream Message)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x01                 (Snapshot Start)
@@ -464,7 +465,7 @@ An open stream will send packets in a series of snapshots. A snaphot is simply a
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       04      |       00      |       00      |
+     0|       81      |       53      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       02      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -481,7 +482,7 @@ An open stream will send packets in a series of snapshots. A snaphot is simply a
     UPR Header command
 	Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x04                 (UPR Stream Message)
+	Opcode         (1)     : 0x53                 (UPR Stream Message)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x02                 (Snapshot End)
@@ -498,7 +499,7 @@ After receiving an UPR stream start message the consumer will receive a series o
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       04      |       00      |       05      |
+     0|       81      |       53      |       00      |       05      |
       +---------------+---------------+---------------+---------------+
      4|       24      |       03      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -535,7 +536,7 @@ After receiving an UPR stream start message the consumer will receive a series o
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x04                 (UPR Stream Message)
+	Opcode         (1)     : 0x53                 (UPR Stream Message)
     Key Length     (2-3)   : 0x0005               (5)
     Extra Length   (4)     : 0x24                 (36)
     Request Type   (5)     : 0x03                 (UPR Mutation)
@@ -557,7 +558,7 @@ After receiving an UPR stream start message the consumer will receive a series o
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       04      |       00      |       05      |
+     0|       81      |       53      |       00      |       05      |
       +---------------+---------------+---------------+---------------+
      4|       24      |       04      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -592,7 +593,7 @@ After receiving an UPR stream start message the consumer will receive a series o
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x04                 (UPR Stream Message)
+	Opcode         (1)     : 0x53                 (UPR Stream Message)
     Key Length     (2-3)   : 0x0005               (5)
     Extra Length   (4)     : 0x24                 (36)
     Request Type   (5)     : 0x04                 (UPR Deletion)
@@ -613,7 +614,7 @@ After receiving an UPR stream start message the consumer will receive a series o
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       04      |       00      |       05      |
+     0|       81      |       53      |       00      |       05      |
       +---------------+---------------+---------------+---------------+
      4|       24      |       05      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -648,7 +649,7 @@ After receiving an UPR stream start message the consumer will receive a series o
     UPR Expiration Command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x04                 (UPR Stream Message)
+	Opcode         (1)     : 0x53                 (UPR Stream Message)
     Key Length     (2-3)   : 0x0005               (5)
     Extra Length   (4)     : 0x24                 (36)
     Request Type   (5)     : 0x05                 (UPR Expiration)
@@ -669,7 +670,7 @@ After receiving an UPR stream start message the consumer will receive a series o
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       04      |       00      |       00      |
+     0|       81      |       53      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       06      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -686,7 +687,7 @@ After receiving an UPR stream start message the consumer will receive a series o
     UPR Expiration Command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x04                 (UPR Stream Message)
+	Opcode         (1)     : 0x53                 (UPR Stream Message)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x06                 (UPR Flush)
@@ -710,7 +711,7 @@ Examples of stream end packets are shown below.
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       05      |       00      |       00      |
+     0|       81      |       54      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       01      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -727,7 +728,7 @@ Examples of stream end packets are shown below.
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x05                 (UPR Stream End)
+	Opcode         (1)     : 0x54                 (UPR Stream End)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x01                 (OK)
@@ -742,7 +743,7 @@ Examples of stream end packets are shown below.
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       81      |       05      |       00      |       00      |
+     0|       81      |       54      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
      4|       00      |       02      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
@@ -759,7 +760,7 @@ Examples of stream end packets are shown below.
     UPR Header command
     Field        (offset) (value)
     Magic          (0)     : 0x81                 (Response)
-	Opcode         (1)     : 0x05                 (UPR Stream End)
+	Opcode         (1)     : 0x54                 (UPR Stream End)
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Request Type   (5)     : 0x02                 (State Changed)
@@ -769,3 +770,47 @@ Examples of stream end packets are shown below.
     Cas            (16-23) : 0x0000000000000000
 
 
+###Set VBucket
+
+The Set VBucket message is used during the VBucket takeover process to hand off ownership of a VBucket between two nodes. The message format as well as the state values for this operation is below.
+
+* Active (0x01) - Changes the VBucket on the consumer side to active state.
+* Pending (0x02) - Changes the VBucket on the consumer side to pending state.
+* Replica (0x03) - Changes the VBucket on the consumer side to replica state.
+* Dead (0x04) - Changes the VBucket on the consumer side to dead state.
+<br>
+
+    UPR Set VBucket Message
+
+    Byte/     0       |       1       |       2       |       3       |
+       /              |               |               |               |
+      |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+      +---------------+---------------+---------------+---------------+
+     0|       81      |       55      |       00      |       00      |
+      +---------------+---------------+---------------+---------------+
+     4|       00      |       00      |       00      |       0C      |
+      +---------------+---------------+---------------+---------------+
+     8|       00      |       00      |       00      |       00      |
+      +---------------+---------------+---------------+---------------+
+    12|       00      |       00      |       00      |       2D      |
+      +---------------+---------------+---------------+---------------+
+    16|       00      |       00      |       00      |       00      |
+      +---------------+---------------+---------------+---------------+
+    20|       00      |       00      |       00      |       00      |
+      +---------------+---------------+---------------+---------------+
+    24|       01      |
+      +---------------+
+
+    Header breakdown
+    UPR Set VBucket command
+    Field        (offset) (value)
+    Magic          (0)     : 0x81                 (Response)
+	Opcode         (1)     : 0x55                 (UPR Set VBucket)
+    Key Length     (2-3)   : 0x0000
+    Extra Length   (4)     : 0x00
+    Request Type   (5)     : 0x00
+    VBucket        (6-7)   : 0x000C               (12)
+    Total Body     (8-11)  : 0x00000000
+    Request ID     (12-15) : 0x0000002D           (45)
+    Cas            (16-23) : 0x0000000000000000
+	State		   (24)    : 0x01                 (Active)
