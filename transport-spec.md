@@ -138,8 +138,8 @@ UPR request messages are used by the consumer in order to specify a piece of dat
 #####Error Codes
 
 * **OK** (0x00) - Specifies that the request was successful.
-* **Not My VBucket** (0x01) - Specifies the the request was for a non-existent VBucket.
-* **Rollback** (0x02) - Specifies that the consumer needs to rollback data before it can receive the data requested.
+* **Not My VBucket** (0x07) - Specifies the the request was for a non-existent VBucket.
+* **Rollback** (0x23) - Specifies that the consumer needs to rollback data before it can receive the data requested.
 
 ####Starting a Stream
 
@@ -293,7 +293,7 @@ After a consumer sends a request to the server for a stream the server can respo
       +---------------+---------------+---------------+---------------+
      0|       81      |       50      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
-     4|       00      |       00      |       00      |       02      |
+     4|       00      |       00      |       00      |       23      |
       +---------------+---------------+---------------+---------------+
      8|       00      |       00      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
@@ -316,7 +316,7 @@ After a consumer sends a request to the server for a stream the server can respo
     Key Length     (2-3)   : 0x0000
     Extra Length   (4)     : 0x00
     Data Type      (5)     : 0x00
-    Status         (6-7)   : 0x0002               (Rollback)
+    Status         (6-7)   : 0x0023               (Rollback)
     Total Body     (8-11)  : 0x00000000
     Opaque         (12-15) : 0x0000002D           (45)
     Cas            (16-23) : 0x0000000000000000
