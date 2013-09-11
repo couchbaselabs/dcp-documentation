@@ -3,7 +3,7 @@
 
 ##Terminology
 
-* **Consumer** - The endpoint in a connection that is responsible for requesting different kinds of data. The consumer is responsible for doing some sort of processing with the data sent from the consumer.
+* **Consumer** - The endpoint in a connection that is responsible for requesting different kinds of data. The consumer is responsible for doing some sort of processing with the data sent from the producer.
 * **Producer** - The endpoint in a connection that is responsible for producing data for given requests.
 * **Stream** - A stream is a series of messages sent over a given period of time that are generate from a particular request message.
 * **Snapshot** - A unique sequence of keys that is sent by a stream.
@@ -254,7 +254,7 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
       68| 0x72 ('r')    | 0x65 ('e')    | 0x61 ('a')    | 0x6d ('m')    |
         +---------------+---------------+---------------+---------------+
-      72| 0x2d          | 0x30          |
+      72| 0x2d ('-')    | 0x30 ('0')    |
         +---------------+---------------+
     UPR_STREAM_REQ command
     Field        (offset) (value)
@@ -448,7 +448,7 @@ example shows the breakdown of the message:
 Sent to tell the consumer that the producer will has no more messages to stream.
 
 The request:
-* Must not have extras
+* Must have extras
 * Must not have key
 * Must not have value
 
@@ -512,9 +512,9 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x54          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x04          | 0x00          | 0x00          | 0x00          |
+       4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x04          |
+       8| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
       12| 0xde          | 0xad          | 0xbe          | 0xef          |
         +---------------+---------------+---------------+---------------+
@@ -522,17 +522,15 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       20| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      24| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
     UPR_SNAPSHOT_START command
     Field        (offset) (value)
     Magic        (0)    : 0x80
     Opcode       (1)    : 0x54
     Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x04
+    Extra length (4)    : 0x00
     Data type    (5)    : 0x00
     Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000004
+    Total body   (8-11) : 0x00000000
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
 
@@ -553,9 +551,9 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x55          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x04          | 0x00          | 0x00          | 0x00          |
+       4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x04          |
+       8| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
       12| 0xde          | 0xad          | 0xbe          | 0xef          |
         +---------------+---------------+---------------+---------------+
@@ -563,17 +561,15 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       20| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      24| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
     UPR_SNAPSHOT_END command
     Field        (offset) (value)
     Magic        (0)    : 0x80
     Opcode       (1)    : 0x55
     Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x04
+    Extra length (4)    : 0x00
     Data type    (5)    : 0x00
     Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000004
+    Total body   (8-11) : 0x00000000
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
 
@@ -642,8 +638,8 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       56| 0x6f ('o')    | 0x77 ('w')    | 0x6f ('o')    | 0x72 ('r')    |
         +---------------+---------------+---------------+---------------+
-      60| 0x6c ('l')    | 0x64 ('d')    | 0x0a          |
-        +---------------+---------------+---------------+
+      60| 0x6c ('l')    | 0x64 ('d')    |
+        +---------------+---------------+
     UPR_MUTATION command
     Field        (offset) (value)
     Magic        (0)    : 0x80
