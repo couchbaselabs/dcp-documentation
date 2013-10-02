@@ -49,4 +49,10 @@ In order to bring the new VBucket up to date with respect to the current active 
 
 ###VBucket Takeover
 
-This is probably the most interesting part of the design for you and I am still trying to work out the details to see if we can do something better than we are currently doing. I will discuss this with others today, but please let me know if you have any proposals for this section so I can integrate you ideas into the design.
+VBucket Takeover will work very similarly to how it works in the current tap protocol. When doing a VBucket Takeover the EBucketMigrator can expect that the producer side of the connection will exhibit the behavior shown below.
+
+![Figure 2](images/vbucket_move_detailed_figure_2.jpg)
+
+During the takeover phase the EBucketMigrator process will need to watch for "Set VBucket State" messages which will be sent twice during the takeover process. The first state change message that should be seen is the state change of the VBucket on the consumer side from replica to pending state. When the EBucketMigrator sees this message it knows that moving forward if the connection goes down for some reason then the EBucketMigrator will need to reset the state of the VBucket on the consumer side back to replica. This should be done so that the cluster is returned to the state that it was in before the VBucket takeover began.
+
+The second state change message changes the VBucket on the consumer side to active state. This will be the last message sent by the producer and the EBucketMigrator process needs to make sure that this message is received and executed by the consumer. If the message is lost on the wire due to the connection going down then it could mean that the there is no active VBucket in the cluster since new VBucket would be in pending state and the old VBucket would be in dead state. As a result once the EBucketMigrator believes that the state change to active has taken place it needs to check the new VBuckets state is actually set to active before beginning the next VBucket move.
