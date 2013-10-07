@@ -47,7 +47,7 @@ The current tap implementation is too difficult to use and laks the features nee
 
 we need to support upgrades from 2.x to 3.x. The link below describes how the upgrade process will work.
 
-* [Upgrade (2.x) to (3.x)](https://docs.google.com/document/d/1GmSSGx-cmZNoNyX_83g2rydYDAtdJid2ryTzTu4c6eI)
+* [Upgrade (2.x) to (3.x)](upgrade.md)
 
 
 ###Implementation Designs
