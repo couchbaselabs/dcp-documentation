@@ -281,7 +281,7 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
        0| 0x81          | 0x50          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x00          | 0x00          | 0x00          | 0x23          |
+       4| 0x08          | 0x00          | 0x00          | 0x23          |
         +---------------+---------------+---------------+---------------+
        8| 0x00          | 0x00          | 0x00          | 0x08          |
         +---------------+---------------+---------------+---------------+
@@ -300,7 +300,7 @@ replied with, and the stream is established successfully.
     Magic        (0)    : 0x81
     Opcode       (1)    : 0x50
     Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x00
+    Extra length (4)    : 0x08
     Data type    (5)    : 0x00
     Status       (6,7)  : 0x0023 (Rollback)
     Total body   (8-11) : 0x00000008
