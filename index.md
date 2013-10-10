@@ -22,7 +22,7 @@ A cluster rebalance is made up of multiple VBucket moves. Below are links to the
 In future versions of Couchbase indexing will no longer read from disk and instead get there data from an UPR replication stream. Below are links to the current (2.x) and future (3.x) strategy.
 
 * [Indexing (2.x)](https://github.com/couchbaselabs/ep-engine-designs/blob/master/architecture/indexing.md)
-* [Indexing (3.x)](https://docs.google.com/document/d/1_FAsprUf_N8cMI3NXqw5PWW3RakAHM7lMgpFFAyoD7w)
+* [Indexing (3.x)](indexing.md)
 
 #####XDCR
 
