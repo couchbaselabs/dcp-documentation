@@ -51,9 +51,6 @@ we need to support upgrades from 2.x to 3.x. The link below describes how the up
 * [Upgrade (2.x) to (3.x)](upgrade.md)
 
 
-###Implementation Designs
+###Deprecated Documents
 
-#####EP-Engine
-
-* [Mutation Queues](mutation_queues.md)
-* Replicator
+* [Mutation Queues](deprecated/mutation_queues.md)
