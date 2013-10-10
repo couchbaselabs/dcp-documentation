@@ -28,7 +28,7 @@ In future versions of Couchbase indexing will no longer read from disk and inste
 
 XDCR currently reads items from disk in order to replicate them accross wide area networks. Future versions will stream data directly to the XDCR replicators via an UPR stream. Below are links to the current (2.x) and future (3.x) strategy.
 
-* [XDCR (3.x)](https://docs.google.com/document/d/1Mh6VuZVkmvxg567h0fDLGOJNzQ4O5XSde1MzUuZ42LI)
+* [XDCR (3.x)](xdcr.md)
 
 #####Consistent Views
 
