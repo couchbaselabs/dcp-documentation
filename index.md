@@ -5,7 +5,7 @@ UPR stands for "Universal Protocol for Replication" and the purpose of this proj
 
 ###UPR High-level Details
 
-* [UPR Overview](https://docs.google.com/document/d/1a774bZyKszX6q0HQvvMsYVRZmn29d8NHGNjP1DBOXCM/edit)
+* [UPR Overview](overview.md)
 * [Transport Protocol Specification](transport-spec.md)
 
 ###Use Cases
