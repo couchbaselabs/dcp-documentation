@@ -25,7 +25,188 @@ the client for mutations/deletions/expirations etc. The client may at
 any time send additional commands to the server to start additional
 UPR streams etc.
 
-###Failover Log Request (opcode 0x51)
+
+###Open Connection (opcode 0x50)
+
+Sent by en external entity to a producer and a consumer to create a
+logical channel.
+
+The request:
+* Must have extras
+* Must have key
+* Must not have value
+
+Extra looks like:
+
+     Byte/     0       |       1       |       2       |       3       |
+        /              |               |               |               |
+       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+       +---------------+---------------+---------------+---------------+
+      0| sequence number                                               |
+       +---------------+---------------+---------------+---------------+
+
+The following example shows the breakdown of the message:
+
+      Byte/     0       |       1       |       2       |       3       |
+         /              |               |               |               |
+        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+        +---------------+---------------+---------------+---------------+
+       0| 0x80          | 0x50          | 0x00          | 0x0d          |
+        +---------------+---------------+---------------+---------------+
+       4| 0x04          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       8| 0x00          | 0x00          | 0x00          | 0x11          |
+        +---------------+---------------+---------------+---------------+
+      12| 0xde          | 0xad          | 0xbe          | 0xef          |
+        +---------------+---------------+---------------+---------------+
+      16| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      20| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      24| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      28| 0x6d ('m')    | 0x79 ('y')    | 0x2d ('-')    | 0x63 ('c')    |
+        +---------------+---------------+---------------+---------------+
+      32| 0x6f ('o')    | 0x6e ('n')    | 0x6e ('n')    | 0x65 ('e')    |
+        +---------------+---------------+---------------+---------------+
+      36| 0x63 ('c')    | 0x74 ('t')    | 0x69 ('i')    | 0x6f ('o')    |
+        +---------------+---------------+---------------+---------------+
+      40| 0x6e ('n')    |
+        +---------------+
+    UPR_OPEN command
+    Field        (offset) (value)
+    Magic        (0)    : 0x80
+    Opcode       (1)    : 0x50
+    Key length   (2,3)  : 0x000d
+    Extra length (4)    : 0x04
+    Data type    (5)    : 0x00
+    Vbucket      (6,7)  : 0x0000
+    Total body   (8-11) : 0x00000011
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000000
+      seqno      (24-27): 0x0000
+    Key          (28-40): my-connection
+
+Upon success, the following message is returned.
+
+      Byte/     0       |       1       |       2       |       3       |
+         /              |               |               |               |
+        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+        +---------------+---------------+---------------+---------------+
+       0| 0x81          | 0x50          | 0x00          | 0x09          |
+        +---------------+---------------+---------------+---------------+
+       4| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       8| 0x00          | 0x00          | 0x00          | 0x09          |
+        +---------------+---------------+---------------+---------------+
+      12| 0xde          | 0xad          | 0xbe          | 0xef          |
+        +---------------+---------------+---------------+---------------+
+      16| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      20| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      24| 0x61 ('a')    | 0x62 ('b')    | 0x63 ('c')    | 0x64 ('d')    |
+        +---------------+---------------+---------------+---------------+
+      28| 0x2d ('-')    | 0x64 ('d')    | 0x65 ('e')    | 0x66 ('f')    |
+        +---------------+---------------+---------------+---------------+
+      32| 0x67 ('g')    |
+        +---------------+
+    UPR_OPEN response
+    Field        (offset) (value)
+    Magic        (0)    : 0x81
+    Opcode       (1)    : 0x50
+    Key length   (2,3)  : 0x0009
+    Extra length (4)    : 0x00
+    Data type    (5)    : 0x00
+    Status       (6,7)  : 0x0000
+    Total body   (8-11) : 0x00000009
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000000
+    Key          (24-32): abcd-defg
+
+###Add Stream (opcode 0x51)
+
+Sent by ebucketmigrator to the consumer to tell the consumer to
+initiate a stream request
+
+The request:
+* Must not have extras
+* Must not have key
+* Must not have value
+
+The following example shows the breakdown of the message:
+
+      Byte/     0       |       1       |       2       |       3       |
+         /              |               |               |               |
+        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+        +---------------+---------------+---------------+---------------+
+       0| 0x80          | 0x51          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       4| 0x00          | 0x00          | 0x00          | 0x05          |
+        +---------------+---------------+---------------+---------------+
+       8| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      12| 0xde          | 0xad          | 0xbe          | 0xef          |
+        +---------------+---------------+---------------+---------------+
+      16| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      20| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+    UPR_ADD_STREAM command
+    Field        (offset) (value)
+    Magic        (0)    : 0x80
+    Opcode       (1)    : 0x51
+    Key length   (2,3)  : 0x0000
+    Extra length (4)    : 0x00
+    Data type    (5)    : 0x00
+    Vbucket      (6,7)  : 0x0005
+    Total body   (8-11) : 0x00000000
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000000
+
+The UPR consumer will now initiate a failover log from the producer, and
+once it is established it will respond with the following message:
+
+      Byte/     0       |       1       |       2       |       3       |
+         /              |               |               |               |
+        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+        +---------------+---------------+---------------+---------------+
+       0| 0x81          | 0x51          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       4| 0x06          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       8| 0x00          | 0x00          | 0x00          | 0x06          |
+        +---------------+---------------+---------------+---------------+
+      12| 0xde          | 0xad          | 0xbe          | 0xef          |
+        +---------------+---------------+---------------+---------------+
+      16| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      20| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      24| 0x00          | 0x00          | 0x00          | 0x0a          |
+        +---------------+---------------+---------------+---------------+
+      28| 0x00          | 0x05          |
+        +---------------+---------------+
+    UPR_ADD_STREAM response
+    Field        (offset) (value)
+    Magic        (0)    : 0x81
+    Opcode       (1)    : 0x51
+    Key length   (2,3)  : 0x0000
+    Extra length (4)    : 0x06
+    Data type    (5)    : 0x00
+    Status       (6,7)  : 0x0000
+    Total body   (8-11) : 0x00000006
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000000
+      opaque     (24,27): 0x000a
+      vbucketid  (28,29): 0x05
+
+The opaque field in the extra field of the response contains the
+opaque value used by messages passing for that vbuckt. The vbucket
+identifier in the extra field is the vbucket identifier this response
+belongs to.
+
+###Failover Log Request (opcode 0x53)
 
 The Failover log request is used by the consumer to request all known
 failover ids a client may use to continue from. A failover id consists
@@ -50,7 +231,7 @@ The following example requests the failover log for vbucket 0:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x51          | 0x00          | 0x00          |
+       0| 0x80          | 0x53          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -65,7 +246,7 @@ The following example requests the failover log for vbucket 0:
     UPR_GET_FAILOVER_LOG command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x51
+    Opcode       (1)    : 0x53
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -82,7 +263,7 @@ failover ids available:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x81          | 0x51          | 0x00          | 0x00          |
+       0| 0x81          | 0x53          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -129,7 +310,7 @@ failover ids available:
     UPR_GET_FAILOVER_LOG response
     Field        (offset) (value)
     Magic        (0)    : 0x81
-    Opcode       (1)    : 0x51
+    Opcode       (1)    : 0x53
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -150,7 +331,7 @@ There are multiple reason's why the request may fail (see the status
 field), but the one that's most likely to expect is "not my vbucket"
 if the requested vbucket isn't located on the server.
 
-###Stream Request (opcode 0x50)
+###Stream Request (opcode 0x52)
 
 Sent by the consumer side to the producer specifying that the consumer
 want some piece of data (Ex. XDCR). In order to initial a stream from
@@ -218,7 +399,7 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x50          | 0x00          | 0x0a          |
+       0| 0x80          | 0x52          | 0x00          | 0x0a          |
         +---------------+---------------+---------------+---------------+
        4| 0x28          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -254,12 +435,12 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
       68| 0x72 ('r')    | 0x65 ('e')    | 0x61 ('a')    | 0x6d ('m')    |
         +---------------+---------------+---------------+---------------+
-      72| 0x2d ('-')    | 0x30 ('0')    |
+      72| 0x2d ('-')    | 0x30          |
         +---------------+---------------+
     UPR_STREAM_REQ command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x50
+    Opcode       (1)    : 0x52
     Key length   (2,3)  : 0x000a
     Extra length (4)    : 0x28
     Data type    (5)    : 0x00
@@ -279,9 +460,9 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x81          | 0x50          | 0x00          | 0x00          |
+       0| 0x81          | 0x52          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x08          | 0x00          | 0x00          | 0x23          |
+       4| 0x08          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        8| 0x00          | 0x00          | 0x00          | 0x08          |
         +---------------+---------------+---------------+---------------+
@@ -298,11 +479,11 @@ replied with, and the stream is established successfully.
     UPR_STREAM_REQ response
     Field        (offset) (value)
     Magic        (0)    : 0x81
-    Opcode       (1)    : 0x50
+    Opcode       (1)    : 0x52
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x08
     Data type    (5)    : 0x00
-    Status       (6,7)  : 0x0023 (Rollback)
+    Status       (6,7)  : 0x0000
     Total body   (8-11) : 0x00000008
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
@@ -313,7 +494,7 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x50          | 0x00          | 0x0a          |
+       0| 0x80          | 0x52          | 0x00          | 0x0a          |
         +---------------+---------------+---------------+---------------+
        4| 0x28          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -349,12 +530,12 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
       68| 0x72 ('r')    | 0x65 ('e')    | 0x61 ('a')    | 0x6d ('m')    |
         +---------------+---------------+---------------+---------------+
-      72| 0x2d          | 0x30          |
+      72| 0x2d ('-')    | 0x30          |
         +---------------+---------------+
     UPR_STREAM_REQ command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x50
+    Opcode       (1)    : 0x52
     Key length   (2,3)  : 0x000a
     Extra length (4)    : 0x28
     Data type    (5)    : 0x00
@@ -374,7 +555,7 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x81          | 0x50          | 0x00          | 0x00          |
+       0| 0x81          | 0x52          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -389,7 +570,7 @@ replied with, and the stream is established successfully.
     UPR_STREAM_REQ response
     Field        (offset) (value)
     Magic        (0)    : 0x81
-    Opcode       (1)    : 0x50
+    Opcode       (1)    : 0x52
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -402,48 +583,7 @@ As always you may receive other error messages, where "not my vbucket"
 (meaning you sent the request to the wrong server) or "key not found"
 meaning that the server don't know the vbucket uuid.
 
-###Stream Start (opcode 0x52)
-
-After the stream is set up with Stream Request the *server* starts the
-stream by sending the Stream Start command to the client.
-
-The request:
-* Must not have extras
-* Must not have key
-* Must not have value
-
-The client should not send a reply to this command. The following
-example shows the breakdown of the message:
-
-      Byte/     0       |       1       |       2       |       3       |
-         /              |               |               |               |
-        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
-        +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x52          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-       4| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      12| 0xde          | 0xad          | 0xbe          | 0xef          |
-        +---------------+---------------+---------------+---------------+
-      16| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      20| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-    UPR_STREAM_START command
-    Field        (offset) (value)
-    Magic        (0)    : 0x80
-    Opcode       (1)    : 0x52
-    Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x00
-    Data type    (5)    : 0x00
-    Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000000
-    Opaque       (12-15): 0xdeadbeef
-    CAS          (16-23): 0x0000000000000000
-
-###Stream End (opcode 0x53)
+###Stream End (opcode 0x54)
 
 Sent to tell the consumer that the producer will has no more messages to stream.
 
@@ -459,7 +599,7 @@ example shows the breakdown of the message:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x53          | 0x00          | 0x00          |
+       0| 0x80          | 0x54          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x04          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -476,7 +616,7 @@ example shows the breakdown of the message:
     UPR_STREAM_END command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x53
+    Opcode       (1)    : 0x54
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x04
     Data type    (5)    : 0x00
@@ -484,7 +624,7 @@ example shows the breakdown of the message:
     Total body   (8-11) : 0x00000004
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
-      flag       (24-27): 0x0000000000000000
+      flag       (24-27): 0x00000000 (OK)
 
 The flag may have the following values:
 
@@ -492,50 +632,11 @@ The flag may have the following values:
 * State Changed (0x01) - The state of the VBucket that is being streamed has changed to state that the consumer does not want to receive.
 
 
-###Snapshot Start (opcode 0x54)
+###Snapshot Marker (opcode 0x55)
 
 Sent by the producer to tell the consumer that a new snapshot is being
 sent. A snaphot is simply a series of commands that is guarenteed to
 contain a unique set of keys.
-
-The request:
-* Must not have extras
-* Must not have key
-* Must not have value
-
-The client should not send a reply to this command. The following
-example shows the breakdown of the message:
-
-      Byte/     0       |       1       |       2       |       3       |
-         /              |               |               |               |
-        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
-        +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x54          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-       4| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      12| 0xde          | 0xad          | 0xbe          | 0xef          |
-        +---------------+---------------+---------------+---------------+
-      16| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      20| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-    UPR_SNAPSHOT_START command
-    Field        (offset) (value)
-    Magic        (0)    : 0x80
-    Opcode       (1)    : 0x54
-    Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x00
-    Data type    (5)    : 0x00
-    Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000000
-    Opaque       (12-15): 0xdeadbeef
-    CAS          (16-23): 0x0000000000000000
-
-###Snapshot End (opcode 0x55)
-Sent by the producer to tell the consumer that the current snapshot is finshed.
 
 The request:
 * Must not have extras
@@ -561,7 +662,7 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       20| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-    UPR_SNAPSHOT_END command
+    UPR_SNAPSHOT_MARKER command
     Field        (offset) (value)
     Magic        (0)    : 0x80
     Opcode       (1)    : 0x55
@@ -572,6 +673,7 @@ example shows the breakdown of the message:
     Total body   (8-11) : 0x00000000
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
+
 
 ###Mutation (0x56)
 Tells the consumer that the message contains a key mutation.
