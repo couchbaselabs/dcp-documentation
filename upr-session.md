@@ -41,25 +41,19 @@ Once a stream is started the Application will begin receiving data. The figure b
 
 ![Figure 3](images/upr_session_3.jpg)
 
-(1) The first data message and application will receive is a Stream Start message. The only significance of this message is to tell the Application that the data will begin being sent to the Application.
+(1) Once a stream has been started the first messages received by the Application will be a series of Mutation, Deletion, and Expiration messages. These messages should be considered part of the first snapshot that is sent to the Application.
 
-(2) The next message that will be received is a Start Snapshot message which will indicate that the starting of a snapshot.
+(2) Once all of the items from the first snapshot have been sent the Producer will send a Snapshot Marker message to tell the Application that the producer has reached the end of a snapshot. Any items received after a snapshot marker should be part of the next snapshot.
 
-(3) After a Start Snapshot message the Application will receive a series of Mutation, Deletion, and Expiration messages. These messages contain data about operations that have taken place on certain keys
+(3) After the Snapshot Marker is received if the Producer has more items to send the Application will receive begin to receive the next snapshot.
 
 (4) When the Producer gets to the end of a snaphot it sends a Snapshot End message to let the Application know that the snapshot is finished.
 
-(5) If the Producer has more snapshots to send to the Application then the Producer will send a Snapshot Start message to let the client know it will be receiving another snapshot. 
-
-(6) The Application will then receive all of the Mutation, Deletion, and Expiration messages in that snapshot.
-
-(7) When the snapshot is finished the Producer will send a Snapshot End message.
-
-(8) At some point the VBucket stream may then be finished and the Application will receive a Stream End message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the Stream End message.
+(5) At some point the VBucket stream may then be finished and the Application will receive a Stream End message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the Stream End message.
 
 #####Closing a Stream
 
-The Producer will close a stream whenever the Application responds with a NACK to a message sent by the Producer. If a message is sent to the Application for which the Application has no registered stream then this message should always be NACK'ed. As a result when closing a stream the Application can simply deregister the stream on the Application side. If the connection is still up then the next message sent by the Producer for that stream will be NACK'ed automatically and the Producer will then remove the stream from its side.
+The Producer will close a stream whenever the Application responds with a NACK to a message sent by the Producer. If a message is sent to the Application for which the Application has no registered stream then this message should always be NACK'ed.
 
 #####Closing a Connection
 
