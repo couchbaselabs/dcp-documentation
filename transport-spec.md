@@ -130,9 +130,23 @@ Sent by ebucketmigrator to the consumer to tell the consumer to
 initiate a stream request
 
 The request:
-* Must not have extras
+* Must have extras
 * Must not have key
 * Must not have value
+
+Extra looks like:
+
+     Byte/     0       |       1       |       2       |       3       |
+        /              |               |               |               |
+       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+       +---------------+---------------+---------------+---------------+
+      0| flags                                                         |
+       +---------------+---------------+---------------+---------------+
+
+Flags is specified as a bitmask in network byte order with the
+following bits defined:
+
+     1 - Takeover
 
 The following example shows the breakdown of the message:
 
@@ -142,9 +156,9 @@ The following example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x51          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x00          | 0x00          | 0x00          | 0x05          |
+       4| 0x04          | 0x00          | 0x00          | 0x05          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x00          |
+       8| 0x00          | 0x00          | 0x00          | 0x04          |
         +---------------+---------------+---------------+---------------+
       12| 0xde          | 0xad          | 0xbe          | 0xef          |
         +---------------+---------------+---------------+---------------+
@@ -152,20 +166,24 @@ The following example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       20| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
+      24| 0x00          | 0x00          | 0x00          | 0x01          |
+        +---------------+---------------+---------------+---------------+
     UPR_ADD_STREAM command
     Field        (offset) (value)
     Magic        (0)    : 0x80
     Opcode       (1)    : 0x51
     Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x00
+    Extra length (4)    : 0x04
     Data type    (5)    : 0x00
     Vbucket      (6,7)  : 0x0005
-    Total body   (8-11) : 0x00000000
+    Total body   (8-11) : 0x00000004
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
+      flags      (24-27): 0x00000001 (takeover)
 
-The UPR consumer will now initiate a failover log from the producer, and
-once it is established it will respond with the following message:
+The UPR consumer will now try to set up an UPR stream between the
+producer and the consumer, and once it is established it will respond
+with the following message:
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |
@@ -206,7 +224,54 @@ opaque value used by messages passing for that vbuckt. The vbucket
 identifier in the extra field is the vbucket identifier this response
 belongs to.
 
-###Failover Log Request (opcode 0x53)
+###Close Stream (opcode 0x52)
+
+Sent by ebucketmigrator to parties in an UPR stream to close a stream for
+a named vbucket as soon as possible
+
+The request:
+* Must not extras
+* Must not have key
+* Must not have value
+
+The layout of a message looks like:
+
+      Byte/     0       |       1       |       2       |       3       |
+         /              |               |               |               |
+        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+        +---------------+---------------+---------------+---------------+
+       0| 0x80          | 0x52          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       4| 0x00          | 0x00          | 0x00          | 0x05          |
+        +---------------+---------------+---------------+---------------+
+       8| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      12| 0xde          | 0xad          | 0xbe          | 0xef          |
+        +---------------+---------------+---------------+---------------+
+      16| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      20| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+    UPR_CLOSE_STREAM command
+    Field        (offset) (value)
+    Magic        (0)    : 0x80
+    Opcode       (1)    : 0x52
+    Key length   (2,3)  : 0x0000
+    Extra length (4)    : 0x00
+    Data type    (5)    : 0x00
+    Vbucket      (6,7)  : 0x0005
+    Total body   (8-11) : 0x00000000
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000000
+
+The UPR consumer will close the UPR stream for the specified vbucket
+imediately and let the UPR producer know as soon as it receives a
+message bound for that vbucket.
+
+The UPR producer will stop sending messages for this vbucket. It may
+still receive response messages for this stream.
+
+###Failover Log Request (opcode 0x54)
 
 The Failover log request is used by the consumer to request all known
 failover ids a client may use to continue from. A failover id consists
@@ -231,7 +296,7 @@ The following example requests the failover log for vbucket 0:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x53          | 0x00          | 0x00          |
+       0| 0x80          | 0x54          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -246,7 +311,7 @@ The following example requests the failover log for vbucket 0:
     UPR_GET_FAILOVER_LOG command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x53
+    Opcode       (1)    : 0x54
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -263,7 +328,7 @@ failover ids available:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x81          | 0x53          | 0x00          | 0x00          |
+       0| 0x81          | 0x54          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -310,7 +375,7 @@ failover ids available:
     UPR_GET_FAILOVER_LOG response
     Field        (offset) (value)
     Magic        (0)    : 0x81
-    Opcode       (1)    : 0x53
+    Opcode       (1)    : 0x54
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -331,7 +396,7 @@ There are multiple reason's why the request may fail (see the status
 field), but the one that's most likely to expect is "not my vbucket"
 if the requested vbucket isn't located on the server.
 
-###Stream Request (opcode 0x52)
+###Stream Request (opcode 0x53)
 
 Sent by the consumer side to the producer specifying that the consumer
 want some piece of data (Ex. XDCR). In order to initial a stream from
@@ -365,7 +430,7 @@ Extra looks like:
        |                                                               |
        +---------------+---------------+---------------+---------------+
      32| High sequence number                                          |
-       | High sequence number                                          |
+       |                                                               |
        +---------------+---------------+---------------+---------------+
        Total 40 bytes
 
@@ -399,7 +464,7 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x52          | 0x00          | 0x0a          |
+       0| 0x80          | 0x53          | 0x00          | 0x0a          |
         +---------------+---------------+---------------+---------------+
        4| 0x28          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -435,12 +500,12 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
       68| 0x72 ('r')    | 0x65 ('e')    | 0x61 ('a')    | 0x6d ('m')    |
         +---------------+---------------+---------------+---------------+
-      72| 0x2d ('-')    | 0x30          |
+      72| 0x2d ('-')    | 0x30 ('0')    |
         +---------------+---------------+
     UPR_STREAM_REQ command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x52
+    Opcode       (1)    : 0x53
     Key length   (2,3)  : 0x000a
     Extra length (4)    : 0x28
     Data type    (5)    : 0x00
@@ -460,7 +525,7 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x81          | 0x52          | 0x00          | 0x00          |
+       0| 0x81          | 0x53          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x08          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -479,7 +544,7 @@ replied with, and the stream is established successfully.
     UPR_STREAM_REQ response
     Field        (offset) (value)
     Magic        (0)    : 0x81
-    Opcode       (1)    : 0x52
+    Opcode       (1)    : 0x53
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x08
     Data type    (5)    : 0x00
@@ -494,7 +559,7 @@ replied with, and the stream is established successfully.
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x52          | 0x00          | 0x0a          |
+       0| 0x80          | 0x53          | 0x00          | 0x0a          |
         +---------------+---------------+---------------+---------------+
        4| 0x28          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -530,12 +595,12 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
       68| 0x72 ('r')    | 0x65 ('e')    | 0x61 ('a')    | 0x6d ('m')    |
         +---------------+---------------+---------------+---------------+
-      72| 0x2d ('-')    | 0x30          |
+      72| 0x2d ('-')    | 0x30 ('0')    |
         +---------------+---------------+
     UPR_STREAM_REQ command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x52
+    Opcode       (1)    : 0x53
     Key length   (2,3)  : 0x000a
     Extra length (4)    : 0x28
     Data type    (5)    : 0x00
@@ -583,7 +648,7 @@ As always you may receive other error messages, where "not my vbucket"
 (meaning you sent the request to the wrong server) or "key not found"
 meaning that the server don't know the vbucket uuid.
 
-###Stream End (opcode 0x54)
+###Stream End (opcode 0x55)
 
 Sent to tell the consumer that the producer will has no more messages to stream.
 
@@ -599,7 +664,7 @@ example shows the breakdown of the message:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x54          | 0x00          | 0x00          |
+       0| 0x80          | 0x55          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x04          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -616,7 +681,7 @@ example shows the breakdown of the message:
     UPR_STREAM_END command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x54
+    Opcode       (1)    : 0x55
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x04
     Data type    (5)    : 0x00
@@ -632,7 +697,7 @@ The flag may have the following values:
 * State Changed (0x01) - The state of the VBucket that is being streamed has changed to state that the consumer does not want to receive.
 
 
-###Snapshot Marker (opcode 0x55)
+###Snapshot Marker (opcode 0x56)
 
 Sent by the producer to tell the consumer that a new snapshot is being
 sent. A snaphot is simply a series of commands that is guarenteed to
@@ -650,7 +715,7 @@ example shows the breakdown of the message:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x55          | 0x00          | 0x00          |
+       0| 0x80          | 0x56          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -665,7 +730,7 @@ example shows the breakdown of the message:
     UPR_SNAPSHOT_MARKER command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x55
+    Opcode       (1)    : 0x56
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -675,7 +740,7 @@ example shows the breakdown of the message:
     CAS          (16-23): 0x0000000000000000
 
 
-###Mutation (0x56)
+###Mutation (0x57)
 Tells the consumer that the message contains a key mutation.
 
 The request:
@@ -710,7 +775,7 @@ example shows the breakdown of the message:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x56          | 0x00          | 0x05          |
+       0| 0x80          | 0x57          | 0x00          | 0x05          |
         +---------------+---------------+---------------+---------------+
        4| 0x1c          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -745,7 +810,7 @@ example shows the breakdown of the message:
     UPR_MUTATION command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x56
+    Opcode       (1)    : 0x57
     Key length   (2,3)  : 0x0005
     Extra length (4)    : 0x1c
     Data type    (5)    : 0x00
@@ -761,76 +826,8 @@ example shows the breakdown of the message:
       key        (52-56): hello
       value      (57-62): world
 
-###Deletion (0x57)
+###Deletion (0x58)
 Tells the consumer that the message contains a key deletion.
-
-The request:
-* Must have extras
-* Must have key
-* Must not have value
-
-Extra looks like:
-
-     Byte/     0       |       1       |       2       |       3       |
-        /              |               |               |               |
-       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
-       +---------------+---------------+---------------+---------------+
-      0| by_seqo                                                       |
-       |                                                               |
-       +---------------+---------------+---------------+---------------+
-      8| rev seqno                                                     |
-       |                                                               |
-       +---------------+---------------+---------------+---------------+
-       Total 16 bytes
-
-The client should not send a reply to this command. The following
-example shows the breakdown of the message:
-
-      Byte/     0       |       1       |       2       |       3       |
-         /              |               |               |               |
-        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
-        +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x57          | 0x00          | 0x05          |
-        +---------------+---------------+---------------+---------------+
-       4| 0x10          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x15          |
-        +---------------+---------------+---------------+---------------+
-      12| 0xde          | 0xad          | 0xbe          | 0xef          |
-        +---------------+---------------+---------------+---------------+
-      16| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      20| 0x00          | 0x00          | 0x00          | 0x01          |
-        +---------------+---------------+---------------+---------------+
-      24| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      28| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      32| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      36| 0x00          | 0x00          | 0x00          | 0x00          |
-        +---------------+---------------+---------------+---------------+
-      40| 0x68 ('h')    | 0x65 ('e')    | 0x6c ('l')    | 0x6c ('l')    |
-        +---------------+---------------+---------------+---------------+
-      44| 0x6f ('o')    |
-        +---------------+
-    UPR_DELETION command
-    Field        (offset) (value)
-    Magic        (0)    : 0x80
-    Opcode       (1)    : 0x57
-    Key length   (2,3)  : 0x0005
-    Extra length (4)    : 0x10
-    Data type    (5)    : 0x00
-    Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000015
-    Opaque       (12-15): 0xdeadbeef
-    CAS          (16-23): 0x0000000000000001
-      by seqno   (24-31): 0x0000000000000000
-      rev seqno  (32-39): 0x0000000000000000
-      key        (40-44): hello
-
-###Expiration (0x58)
-Tells the consumer that the message contains a key expiration.
 
 The request:
 * Must have extras
@@ -882,7 +879,7 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       44| 0x6f ('o')    |
         +---------------+
-    UPR_EXPIRATION command
+    UPR_DELETION command
     Field        (offset) (value)
     Magic        (0)    : 0x80
     Opcode       (1)    : 0x58
@@ -897,7 +894,75 @@ example shows the breakdown of the message:
       rev seqno  (32-39): 0x0000000000000000
       key        (40-44): hello
 
-###Flush (0x59)
+###Expiration (0x59)
+Tells the consumer that the message contains a key expiration.
+
+The request:
+* Must have extras
+* Must have key
+* Must not have value
+
+Extra looks like:
+
+     Byte/     0       |       1       |       2       |       3       |
+        /              |               |               |               |
+       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+       +---------------+---------------+---------------+---------------+
+      0| by_seqo                                                       |
+       |                                                               |
+       +---------------+---------------+---------------+---------------+
+      8| rev seqno                                                     |
+       |                                                               |
+       +---------------+---------------+---------------+---------------+
+       Total 16 bytes
+
+The client should not send a reply to this command. The following
+example shows the breakdown of the message:
+
+      Byte/     0       |       1       |       2       |       3       |
+         /              |               |               |               |
+        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+        +---------------+---------------+---------------+---------------+
+       0| 0x80          | 0x59          | 0x00          | 0x05          |
+        +---------------+---------------+---------------+---------------+
+       4| 0x10          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+       8| 0x00          | 0x00          | 0x00          | 0x15          |
+        +---------------+---------------+---------------+---------------+
+      12| 0xde          | 0xad          | 0xbe          | 0xef          |
+        +---------------+---------------+---------------+---------------+
+      16| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      20| 0x00          | 0x00          | 0x00          | 0x01          |
+        +---------------+---------------+---------------+---------------+
+      24| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      28| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      32| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      36| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      40| 0x68 ('h')    | 0x65 ('e')    | 0x6c ('l')    | 0x6c ('l')    |
+        +---------------+---------------+---------------+---------------+
+      44| 0x6f ('o')    |
+        +---------------+
+    UPR_EXPIRATION command
+    Field        (offset) (value)
+    Magic        (0)    : 0x80
+    Opcode       (1)    : 0x59
+    Key length   (2,3)  : 0x0005
+    Extra length (4)    : 0x10
+    Data type    (5)    : 0x00
+    Vbucket      (6,7)  : 0x0000
+    Total body   (8-11) : 0x00000015
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000001
+      by seqno   (24-31): 0x0000000000000000
+      rev seqno  (32-39): 0x0000000000000000
+      key        (40-44): hello
+
+###Flush (0x5a)
 Tells the consumer to delete all of its data for a given vbucket.
 
 The request:
@@ -912,7 +977,7 @@ example shows the breakdown of the message:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x59          | 0x00          | 0x00          |
+       0| 0x80          | 0x5a          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -927,7 +992,7 @@ example shows the breakdown of the message:
     UPR_FLUSH command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x59
+    Opcode       (1)    : 0x5a
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x00
     Data type    (5)    : 0x00
@@ -936,7 +1001,7 @@ example shows the breakdown of the message:
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
 
-###Set VBucket State (0x5A)
+###Set VBucket State (0x5b)
 
 The Set VBucket message is used during the VBucket takeover process to
 hand off ownership of a VBucket between two nodes. The message format
@@ -971,7 +1036,7 @@ example shows the breakdown of the message:
          /              |               |               |               |
         |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
         +---------------+---------------+---------------+---------------+
-       0| 0x80          | 0x5a          | 0x00          | 0x00          |
+       0| 0x80          | 0x5b          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        4| 0x01          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -988,7 +1053,7 @@ example shows the breakdown of the message:
     UPR_SET_VBUCKET_STATE command
     Field        (offset) (value)
     Magic        (0)    : 0x80
-    Opcode       (1)    : 0x5a
+    Opcode       (1)    : 0x5b
     Key length   (2,3)  : 0x0000
     Extra length (4)    : 0x01
     Data type    (5)    : 0x00
