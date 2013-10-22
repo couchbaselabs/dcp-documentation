@@ -1,4 +1,3 @@
-
 ##UPR Session
 
 This document intends to describe an example of an UPR session between a consumer and a producer. The intended readers of this document are consumers of the Couchbase Streaming API. In the sections below the server that is being communicated with is refered to as the "Producer" and the code code that is consuming the stream is refered to as the "Application". Please refer to the [Transport Specification](transport-spec.md) for more details on the wire format of each operation mentioned.
@@ -11,7 +10,7 @@ Creating a connection consists of opening a TCP/IP socket between the Applicatio
 
 (1) The Application will send an Open Connection message to the Producer in order to create the initial connection and assign that connection a name. The connection name can be used for stat monitoring and other control messages during the lifetime of the connection. If a connection already exists on the Producer with the same name then that connection is closed and a new one is opened for the Application.
 
-(2) The Producer will respond with a message containing a Connection UUID. This UUID is only needed if the Application needs to send a "Close Connection" control message to the Producer. For Application implmentations this UUID can be ignored.
+(2) The Producer will respond with a message containing a Connection UUID. This UUID is only needed if the Application needs to send a "Close Connection" control message to the Producer. For Application implementations this UUID can be ignored.
 
 #####Starting the Stream
 
