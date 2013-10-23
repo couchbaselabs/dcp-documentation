@@ -44,11 +44,11 @@ Once a stream is started the Application will begin receiving data. The figure b
 
 (2) Once all of the items from the first snapshot have been sent the Producer will send a Snapshot Marker message to tell the Application that the producer has reached the end of a snapshot. Any items received after a snapshot marker should be part of the next snapshot.
 
-(3) After the Snapshot Marker is received if the Producer has more items to send the Application will receive begin to receive the next snapshot.
+(3) After the Snapshot Marker is received the Producer will send more items to the Application.
 
-(4) When the Producer gets to the end of a snaphot it sends a Snapshot End message to let the Application know that the snapshot is finished.
+(4) When the Producer gets to the end of a snaphot it sends a Snapshot Marker message to let the Application know that the snapshot is finished.
 
-(5) At some point the VBucket stream may then be finished and the Application will receive a Stream End message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the Stream End message.
+(5) At some point the VBucket stream may be finished and the Producer will send a Stream End message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the Stream End message.
 
 #####Closing a Stream
 
