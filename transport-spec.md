@@ -97,7 +97,7 @@ The following example shows the breakdown of the message:
     Total body   (8-11) : 0x00000020
     Opaque       (12-15): 0x00000001
     CAS          (16-23): 0x0000000000000000
-      seqno      (24-27): 0x0000
+      seqno      (24-27): 0x00000000
       flags      (28-31): 0x00000000 (consumer)
     Key          (32-55): bucketstream vb[100-105]
 
