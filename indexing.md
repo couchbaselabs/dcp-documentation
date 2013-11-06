@@ -15,16 +15,16 @@ With UPR, the indexers will no longer directly get the current sequence numbers 
 
 The indexer will establish a connection to the UPR server and tells it:
 
-* Which partitions it’s interested in;
-* The last partition version it has seen (see the UPR specification for details about this);
-* The sequence number for each partition, after which the UPR server should start sending mutation notifications and document bodies.
+* Which partitions it’s interested in
+* The last partition version it has seen (see the UPR specification for details about this)
+* The sequence number for each partition, after which the UPR server should start sending mutation notifications and document bodies
+* The squence number where the stream should end
 
 From this point on, the UPR server starts sending all the information about mutations and their corresponding document bodies, and the indexer just does the same work as it used to do before the UPR-era.
-The UPR stream will keep pushing items to the indexer. In case the indexer doesn’t want new items, it can pause the stream. The UPR server might terminate the stream after too long inactivity.
 
 #####Conditions that UPR streams must respect
 
-An UPR stream must capture a consistent snapshot of the datastore. That is, for any document ID, it can send at most one notification related to that document (creation, update, delete).
+An UPR snapshot contains at most one notification related to that document (creation, update, delete). Snaphots are sent in order, i.e. that a mutation in a previous snapshot happened before the mutation in the current one.
 
 #####Dealing with snapshots
 
@@ -56,14 +56,14 @@ The storage as well as the indexer activate the replica partitions. The indexer 
 
 #####Node rejoining the cluster
 
-A node has failed over but then rejoins the cluster (e.g. it was rebooted for some reason). It still contains the same set of partitions as before the failover, so the cluster manager might decide this node is going to be again the master of those partitions. If this happens, the indexer might have previously indexed items that were not persisted to disk before the failover - now the indexer is ahead of the storage, that is, inconsistent. See the “Indexer is ahead of the datastore” section” for information about how to solve this inconsistency.
+A node has failed over but then rejoins the cluster (e.g. it was rebooted for some reason). It still contains the same set of partitions as before the failover, so the cluster manager might decide this node is going to be again the master of those partitions. If this happens, the indexer might have previously indexed items that were not persisted to disk before the failover - now the indexer is ahead of the storage, that is, inconsistent. See the “Indexer is ahead of the datastore” section for information about how to solve this inconsistency.
 
 ###Indexer is ahead of the datastore
 
 #####Rolling back to a point back in time that is consistent with current datastore state
 
-The UPR ROLLBACK response contains the sequence number (for each partition) to which point the index should be rolled back to. The indexer will find an older header (checkpoint) that contains a sequence number that is lower than or equal to the sequence number supplied by the ROLLBACK response. Once such header is found, the file is truncated to the position that matches the end of that header, discarding all data indexed after that checkpoint.
-A new UPR connection will be instantiated, which sends the partition versions from the header we found to the UPR server. Now the the index isn’t ahead of the storage any more and the response should be OK. The indexing now proceeds the normal way until it has caught up with the datastore, and queries can now be served.
+The UPR ROLLBACK response contains the sequence number to which point a partition in the index should be rolled back to. The indexer will find an older header (checkpoint) that contains a sequence number that is lower than or equal to the sequence number supplied by the ROLLBACK response. Once such header is found, the file is truncated to the position that matches the end of that header, discarding all data indexed after that checkpoint.
+A new UPR connection will be instantiated, which sends the partition versions from the header we found to the UPR server. Now the index isn’t ahead of the storage any more and the response should be OK. The indexing now proceeds the normal way until it has caught up with the datastore, and queries can now be served.
 In the most extreme scenario no such past header is found - in this case the whole index is discarded and has to be fully rebuilt - this is not expected to happen frequently.
 
 #####Rollback and index compaction
