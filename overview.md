@@ -32,11 +32,12 @@ Snapshots do not imply that everything is locked or copied into a new structure.
 
 **Rollback Point** - The server will use the Failover Log to find the first possible History Branch between the last time a client was receiving mutations for a partition and now. The sequence number of that History Branch is the Rollback Point that is sent to the client.
 
-**Partition Stream** - A grouping of messages related to receiving mutations for a specific partition, this includes mutation messages and snapshot begin/end messages. The transport layer (TBD) should be able to provide a way to separate and multiplex multiple streams of information for different partitions.
-Failover Log
-A (possibly capped) list of previous known Partition Versions for a partition. If a client connects to a server and was previously connected to a different version of a partition than that server is currently working with, this list is used to find a Rollback Point.
-Mutation
-The value a key points to has changed (create, update, delete)
+**Partition Stream** - A grouping of messages related to receiving mutations for a specific partition, this includes Mutation/Deletion/Expiration messages and Snapshot Marker messages. The transport layer is able to provide a way to separate and multiplex multiple streams of information for different partitions.
+All messages between Snapshot Markers messages are considered to be one snapshot. A snapshot will only contain the recent update for any given key within the snapshot window. It may require several complete snapshots to get the current version of the document.
+
+**Failover Log** - A (possibly capped) list of previous known Partition Versions for a partition. If a client connects to a server and was previously connected to a different version of a partition than that server is currently working with, this list is used to find a Rollback Point.
+
+**Mutation** - The value a key points to has changed (create, update, delete, expire)
 
 ###Scope
 
@@ -47,28 +48,44 @@ The protocol should also specify how to handle cases where components in the clu
 
 ####Message Types
 
+#####Open Connection
+
+TODO
+
+#####Add Stream
+
+TODO
+
+#####Close Stream
+
+TODO
+
+#####Flush
+
+TODO
+
+#####Set vBucket State
+
+TODO
+
 #####Stream Request
 A client is requesting the event stream for a partition since some Sequence Number. The client sends its known Partition Versions, with the most recent Partition Version it was connected to first.
 
 If the client's most recently connected-to Partition Version is not the current one on the server, the server will determine how far the client must roll back to sync up with the now current version of this partition.
-Clients that try to stay connected as often as possible likely only need to keep the most recent partition version for the partitions they are watching, whereas clients that connect rarely (for example, a backup process), may want to keep several partition versions, which allows for finding a better rollback point than zero when multiple history branches have occurred since the last time the client was connected.
+Clients that try to stay connected as often as possible likely only need to keep the most recent Partition Version for the partitions they are watching, whereas clients that connect rarely (for example, a backup process), may want to keep several Partition Versions, which allows for finding a better rollback point than zero when multiple history branches have occurred since the last time the client was connected.
 It is undefined behaviour to request more than one stream concurrently for a partition. Clients that need to do this should open another connection.
 
 **Fields**
 
 * Partition to stream from
 * Sequence number to stream since.
-* Optionally, a sequence to end on or after (the stream will end after sending the snapshot that contains this sequence. It will *not* send a partial snapshot however, so the stream *may* contain items after this sequence)
-* Client's known partition history (Partition Versions, where the Versions are pairs being a UUID and the Sequence at which that version was created)  
-* Require master flag (if true, send NOT_MY_PARTITION if this server is replica for this vbucket, and close the stream if the server is no longer master)
-* Stream Name - for stats, UI, or control purposes
-* Flag to request a Complete-Single-Snapshot - the disk and write queue are snapshotted in unison, the disk snapshot is played filtering out keys in the memory snapshot, then the memory snapshot is played, then the stream ends. This provides an exactly-one-item-per-key snapshot of the current state of the vbucket, suitable for the Table Scan operation of a query execution engine.
-Flag to request that the stream should end once the most recent mutation that was present when the stream started has been sent. (This is similar to complete-single-snapshot, as it can be used to catch up to the current state of the database, but is *much* less difficult to provide)
+* A sequence number to end on or after (the stream will end after sending the snapshot that contains this sequence. It will *not* send a partial snapshot however, so the stream *may* contain items after this sequence)
+* A Partition Version (pair of UUID and the Sequence at which that version was created) from the client's known partition history
 
 #####Stream Request Response (ROLLBACK)
 There has been a history branch since the client was last connected, so the server responds with the sequence number to roll back at least to.
 
-The client must roll back data such that its current state is as of the end of a snapshot at a sequence less than or equal to this sequence. Once client has rollbacked and repaired it’s state, it will reissue the Stream Request message with it’s newly repaired state reflected in the request.
+The client must roll back data such that its current state is as of the end of a snapshot at a sequence less than or equal to this sequence. Once client has rolled back and repaired its state, it will reissue the Stream Request message with its newly repaired state reflected in the request.
 
 **Fields**
 
@@ -80,108 +97,114 @@ There was no history branch since the client last connected, or the client is re
 
 **Fields**
 
-* Current partition version
-* Whatever information is required to identify that items are on this partition stream.
-
-(TBD) (Could be a stream ID for a Stream as spec’d in the above framing doc)
+*None*
 
 #####Stream Request Response (NOT_MY_PARTITION)
 
 This server cannot serve items for this partition
 
-#####Partition stream - Snapshot Begin
+#####Stream End
 
-This message is sent to notify the client that a snapshot is beginning, and what window of sequences the mutations the follow will fall in. A snapshot will only contain the a recent update for any given key within the snapshot window. It may require several complete snapshots to get the current version of the document, unless the Complete-Single-Snapshot option is used when requesting the stream.
+When the full snapshot that contains the sequence number to end at was sent, a Stream End message will be sent. It contains a flag to indicate whether the end is due to an error or not.
 
-#####Partition stream - mutation
+**Fields**
 
-A mutation always has a key, and the value the key now points to, but may represent a delete, in which case there will not be a value.
+* Flag
+
+#####Mutation
+
+A Mutation always has a key, and the value the key now points to.
 
 **Fields**
 
 * Partition/vBucket Id
 * Sequence number
+* Revision Sequence (“XDCR sequence #”)
 * Key
-* Value (optional)
-* Deleted?
+* Value
 * CAS
 * Expiration
-* Revision Sequence (“XDCR sequence #”)
+* Flags
+* Lock time
 
-#####Partition stream - Snapshot End
+#####Deletion
+
+A Deletion always has a key, but no value.
+
+**Fields**
+
+* Partition/vBucket Id
+* Sequence number
+* Revision Sequence (“XDCR sequence #”)
+* Key
+
+#####Expiration
+
+A Expiration has the same fields as a Deletion.
+
+**Fields**
+
+* Partition/vBucket Id
+* Sequence number
+* Revision Sequence (“XDCR sequence #”)
+* Key
+
+#####Snapshot Marker
 
 This message will be sent after all items in a snapshot have been sent, to let the client know the snapshot is complete.
 
 #####Failover Log Request
 
-The client is asking the server for its failover log for a partition
+The client is asking the server for its Failover Log for a partition. When a client connects to the server the first time it needs to know about the Partition Version. It will make a Failover Log Request in order to get the latest one.
 
 **Fields**
 
-* Partition number
+* Partition/vBucket Id
 
 #####Failover Log Response
 
 **Fields**
 
-* List of partition versions in the server’s failover log
-
-#####Stop Streaming Request
-
-Want to stop receiving items for partition(s) or stop receiving on groups.
-If both are sent, only close streams where both match.
-
-**Fields**
-
-* Partition IDs (optional)
-* Group Name (optional)
-
-#####Stop Streaming Response
-
-Indicates that the requested streams have been stopped, has no body.
+* List of Partition Versions in the server’s Failover Log
 
 ###Behaviors
 
-#####The failover log
+#####The Failover Log
 
-When a replica requests partition streams it should ask the master for a list of all partition versions that the upstream node knows about (for example, in chained replication, a replica would be asking for the list from the replica its pulling from).
+When a replica requests partition streams it should ask the master for a list of all Partition Versions that the upstream node knows about (for example, in chained replication, a replica would be asking for the list from the replica its pulling from).
 
-The replica will keep that list in case it becomes master and needs to send the failover log to other replicas in the future.
+The replica will keep that list in case it becomes master and needs to send the Failover Log to other replicas in the future.
 
-When a node takes over as master for a partition, if it creates a new version for that partition (because it was not able to take over cleanly), it adds an entry to the partition version list that it maintains. This is also called the failover log, since it will have an entry for each failover, or unclean takeover, event.
+When a node takes over as master for a partition, if it creates a new version for that partition (because it was not able to take over cleanly), it adds an entry to the Partition Version list that it maintains. This is also called the Failover Log, since it will have an entry for each failover, or unclean takeover, event.
 
 #####Finding a rollback point
 
-When a client connects and has not been most recently connected to the current version of the partition it is requesting, the server should search for the provided version in its failover log. If it finds an entry for that version, it should send a message to the client requesting it roll back at least to the sequence that begins the version after this version in the failover log.
+When a client connects and has not been most recently connected to the current version of the partition it is requesting, the server should search for the provided version in its Failover Log. If it finds an entry for that version, it should send a message to the client requesting it roll back at least to the sequence that begins the version after this version in the Failover Log.
 
-If none of the clients known versions can be found in the server's failover log, it must request that the client roll back to zero, that is, discard all its data for this partition and start from scratch.
+If none of the clients known versions can be found in the server's Failover Log, it must request that the client roll back to zero, that is, discard all its data for this partition and start from scratch.
 
 ![Figure 1](images/overview_1.png)
 
 ###Client Flow
 
-1. To begin receiving items for a partition, a client must send a Stream Request message, indicating the partition it wants to receive items for, the last sequence it received the last time it was connected (or 0 otherwise), and if it was connected before, the identifier for the last version of the partition it received items from.
+1. To begin receiving items (mutations/deletions/expirations) for a partition, a client must send a Stream Request message, indicating the partition it wants to receive items for, the last sequence it received the last time it was connected (or 0 otherwise), and the identifier for the last version of the partition it received items from.
 
 2. The client waits for a response.
   * The client may receive an OK response, notifying it that a stream has been started on which it will receive item and snapshot messages.
-  * Or, the client may receive a ROLLBACK response, notifying it that there has been a history branch on this partition since it was last connected, and a sequence that must be rolled back at least to. The client may roll back to a sequence that is earlier than that sequence. To ensure consistency and nothing gets missed, the client must rollback to snapshot boundary, the first before or at the rollback point. `The server will not send changes after a ROLLBACK response, and the client should send another Stream Request after it has completed its rollback operation if it still wants items for this partition. If the client is keeping a failover log (list of versions its been connected to in the past, usually because client is a replica), it MUST discard any entries with a sequence number higher than the sequence it rolled back to.
+  * Or, the client may receive a ROLLBACK response, notifying it that there has been a history branch on this partition since it was last connected, and a sequence that must be rolled back at least to. The client may roll back to a sequence that is earlier than that sequence. To ensure consistency and nothing gets missed, the client must rollback to snapshot boundary, the first before or at the rollback point. `The server will not send changes after a ROLLBACK response, and the client should send another Stream Request after it has completed its rollback operation if it still wants items for this partition. If the client is keeping a Failover Log (list of versions its been connected to in the past, usually because client is a replica), it MUST discard any entries with a sequence number higher than the sequence it rolled back to.
 
 3. The client got an OK response, and begins listening for messages on the stream identified by the OK response message.
 
-4. The client should receive a Snapshot Begin message, indicating that the items that follow, until a Snapshot End message is received, will contain at most one version of any particular key, which will be the latest version of that key as of the sequence number included in the Snapshot Begin message.
+4. The client receives items, indicating that those items, until a Snapshot Marker message is received, will contain at most one version of any particular key, which will be the latest version of that key as of the sequence number included in the Snapshot Begin message.
 
-5. The client receives items.
-
-6. The client receives a Snapshot End message, indicating that it has now been sent the latest updates for all keys that were updated between the sequence it requested in its Stream Request and the highest sequence number in this snapshot. The client should now wait for another Snapshot Begin message (#4)
+5. The client receives a Snapshot Marker message, indicating that it has now been sent the latest updates for all keys that were updated between the sequence it requested in its Stream Request and the highest sequence number in this snapshot. The client should now wait for more items or a Stream End message (#4)
 
 ###Server Flow
 
 1. A client asks for items for a partition, and includes the version(s) of the partition that it has been recently connected to.
-  * If the client's most recently connected version is not the version the server is serving, look up the versions the client provided in the server's copy of the failover log. Send a ROLLBACK message with the sequence of the entry after latest entry found. Once the client has rolled back it should send a new request, because the server cannot know how far the client will roll back. The client MUST roll back at least to the sequence sent in the rollback message, but MAY roll back farther.
+  * If the client's most recently connected version is not the version the server is serving, look up the versions the client provided in the server's copy of the Failover Log. Send a ROLLBACK message with the sequence of the entry after latest entry found. Once the client has rolled back it should send a new request, because the server cannot know how far the client will roll back. The client MUST roll back at least to the sequence sent in the rollback message, but MAY roll back farther.
 
-2. Otherwise, snapshot items around the client's current sequence, and send a Snapshot Begin message, telling the client the ending sequence of the snapshot.
-  * If the client is behind (that is the sequence it's currently reading from is already persisted to disk), this can be a snapshot only of storage. Once the client gets ahead of storage this will likely only need to be a snapshot of unpersisted items
+2. Otherwise, snapshot items around the client's current sequence, and send the items.
+  * If the client is behind (that is the sequence it's currently reading from is already persisted to disk), this can be a snapshot only of storage. Once the client gets ahead of storage this will likely only need to be a snapshot of unpersisted items.
 
-3. Send the snapshotted items
-
-4. Send a Snapshot End message, and acquire a new snapshot, above the last key sent. (Back to #2)
+3. Send a Snapshot Marker message, and acquire a new snapshot, above the last key sent (Back to #2), or send a Stream End message.
