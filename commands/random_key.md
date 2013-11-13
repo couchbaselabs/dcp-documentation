@@ -59,10 +59,6 @@ The random key command is used to get a single random key from the cache. It is 
       +---------------+---------------+---------------+---------------+
     28|       5F      |       6B      |       65      |       79      |
       +---------------+---------------+---------------+---------------+
-    32|       72      |       61      |       6E      |       64      |
-      +---------------+---------------+---------------+---------------+
-    36|       5F      |       76      |       61      |       6C      |
-      +---------------+---------------+---------------+---------------+
 
     Header breakdown
     Random Key command
@@ -73,11 +69,10 @@ The random key command is used to get a single random key from the cache. It is 
     Extra length (4)    : 0x00                (0)
     Data type    (5)    : 0x00                (field not used)
     Status       (6,7)  : 0x0000              (Success)
-    Total body   (8-11) : 0x00000010          (16)
+    Total body   (8-11) : 0x00000008          (8)
     Opaque       (12-15): 0x00000000
     CAS          (16-23): 0x0000000000000000  (field not used)
 	Key          (24-31): "rand_key"
-    Value        (32-39): "rand_val"
 
 #####Returns
 
