@@ -104,6 +104,10 @@ If data in this packet is malformed or incomplete then this error is returned.
 
 If the consumer does not have the given VBucket then this error is returned.
 
+**PROTOCOL_BINARY_RESPONSE_ETMPFAIL (0x86)**
+
+If the operation does not complete within a certain amount of time this error code indicates a timeout.
+
 #####Use Cases
 
 The Persist Sequence Number command can be used in order to make sure that all up to a specified sequence number have been persisted to disk. This is useful when doing a rebalance ince before moving to the next VBucket we need to make sure that all items have been durable replicated to another node.
