@@ -18,15 +18,15 @@ Once a connection has been created the Application will want to create one or mo
 
 ![Figure 2](images/upr_session_2.jpg)
 
-(1) The Application will send a Start Stream message to the Producer. This message indicates that the Application wishes to receive data from the Producer on a specific VBucket. If this is the first time the Application is connecting to the Producer then 0 should be specified in the Sequence Number and VBucket UUID fields to indicate that the Application wants to receive all data from Couchbase from the begining of time. If it is not the first time the Application is connecting to the Producer then the Application should specify the Sequence Number from the last item the Application received as well as the last VBucket UUID the Application received. This will allow the Application to begin receiving data from where it last left off.
+(1) The Application will send a Stream Request message to the Producer. This message indicates that the Application wishes to receive data from the Producer on a specific VBucket. If this is the first time the Application is connecting to the Producer then 0 should be specified in the Sequence Number and VBucket UUID fields to indicate that the Application wants to receive all data from Couchbase from the begining of time. If it is not the first time the Application is connecting to the Producer then the Application should specify the Sequence Number from the last item the Application received as well as the last VBucket UUID the Application received. This will allow the Application to begin receiving data from where it last left off.
 
-The Producer will respond to a Start Stream request with either an Ok message or a Rollback message. If the message is Rollback then the stream behavior will resume at step 2, but if an Ok message is received then jump to step 5.
+The Producer will respond to a Stream Request with either an Ok message or a Rollback message. If the message is Rollback then the stream behavior will resume at step 2, but if an Ok message is received then jump to step 5.
 
-(2) The Producer sends a Rollback response which contains  a Sequence Number/VBucket UUID pair that needs to be rolled back to. This means that the Application and the Producer have different version histories of their data and the Application needs to remove some of its data that the Producer doesn't have and then try to start the stream again.
+(2) The Producer sends a Rollback response which contains  a Sequence Number that needs to be rolled back to. This means that the Application and the Producer have different version histories of their data and the Application needs to remove some of its data that the Producer doesn't have and then try to start the stream again.
 
-(3) What happens in this step in totally up to the Application developer. Some Applications may not care if they have some stale data and others will.
+(3) What happens in this step is totally up to the Application developer. Some Applications may not care if they have some stale data and others will.
 
-(4) The Application then uses its new last Sequence Number and VBucket UUID and sends another Start Stream message to the Producer. The Sequence Number should be less than or equal to the Sequence number received in the Rollback message and the VBucket UUID should be the same as the one received in the Rollback message.
+(4) The Application then uses its new last Sequence Number and VBucket UUID and sends another Stream Request message to the Producer. The Sequence Number should be less than or equal to the Sequence number received in the Rollback message.
 
 It is possible if there is a failover between steps 3 and 4 that the consumer will need to rollback again. This should be rare, but if it does happen then jump back to step 2.
 
@@ -44,11 +44,9 @@ Once a stream is started the Application will begin receiving data. The figure b
 
 (2) Once all of the items from the first snapshot have been sent the Producer will send a Snapshot Marker message to tell the Application that the producer has reached the end of a snapshot. Any items received after a snapshot marker should be part of the next snapshot.
 
-(3) After the Snapshot Marker is received the Producer will send more items to the Application.
+(3) After the Snapshot Marker is received the Producer might send more items to the Application ending again with a Snapshot Marker.
 
-(4) When the Producer gets to the end of a snaphot it sends a Snapshot Marker message to let the Application know that the snapshot is finished.
-
-(5) At some point the VBucket stream may be finished and the Producer will send a Stream End message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the Stream End message.
+(4) At some point the VBucket stream may be finished and the Producer will send a Stream End message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the Stream End message.
 
 #####Closing a Stream
 
