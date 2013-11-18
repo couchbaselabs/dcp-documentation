@@ -63,6 +63,10 @@ we need to support upgrades from 2.x to 3.x. The link below describes how the up
 * [Random Key Command](commands/random_key.md)
 * [Persist Seqno Command](commands/persist_seqno.md)
 
+#####Planning
+
+* [Jira](http://www.couchbase.com/issues/secure/RapidBoard.jspa?rapidView=37&view=planning)
+* [Ep-engine](engine-planning.md)
 
 ###Deprecated Documents
 
