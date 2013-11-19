@@ -30,7 +30,7 @@ The Producer will respond to a Stream Request with either an Ok message or a Rol
 
 It is possible if there is a failover between steps 3 and 4 that the consumer will need to rollback again. This should be rare, but if it does happen then jump back to step 2.
 
-(5) The Producer sends and Ok message which contains the Failover Log back to the Application. The Application should persist the Failover Log and expect to begin receiving data from the Producer.
+(5) The Producer sends and Ok message which contains the Failover Log back to the Application. The Application should persist the Failover Log (and use the latest entry for the next request) and expect to begin receiving data from the Producer.
 
 Starting VBucket Streams can be parallelized and the Application can start as many streams as it needs to. Applications should not create a connection per VBucket Stream since this can cause heavy resource usage on the server.
 
