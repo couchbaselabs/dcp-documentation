@@ -57,16 +57,16 @@ we need to support upgrades from 2.x to 3.x. The link below describes how the up
 * [Test Case Todo List](https://docs.google.com/document/d/1JpPumnY1LmYquzx9xm91KGnFvewdFJ4LvT62xHlh4QY/)
 * [Upr Testcase Repo](https://github.com/mikewied/pyupr)
 
+#####Planning
+
+* [Jira](http://www.couchbase.com/issues/secure/RapidBoard.jspa?rapidView=37&view=planning)
+* [Ep-engine](engine-planning.md)
 
 #####Other
 
 * [Random Key Command](commands/random_key.md)
 * [Persist Seqno Command](commands/persist_seqno.md)
-
-#####Planning
-
-* [Jira](http://www.couchbase.com/issues/secure/RapidBoard.jspa?rapidView=37&view=planning)
-* [Ep-engine](engine-planning.md)
+* [Stats VBucket-Seqno Command](commands/stats-vbucket-seqno.md)
 
 ###Deprecated Documents
 
