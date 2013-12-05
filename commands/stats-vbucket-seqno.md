@@ -1,11 +1,10 @@
-
 ##Stats VBucket-Seqno
 
 The Stats VBucket-Seqno command is used to obtain the current High Sequence Number/VBucket UUID for one or all VBuckets on a Couchbase node.
 
 ####Binary Implementation
 
-See the stats command for details on the packet format for stats commands. Stats VBucket-Seqno can be used by placing the string "vbucket-seqno" into the key section of a stats packet to receive High Sequence Number/VBucket UUID pairs for all VBuckets on a given node. To receive a the High Sequence NUmber/VBucket UUID pair for a single VBucket then you can set the key in the stats command to "vbucket-seqno <vbid>".
+See the stats command for details on the packet format for stats commands. Stats VBucket-Seqno can be used by placing the string `vbucket-seqno` into the key section of a stats packet to receive High Sequence Number/VBucket UUID pairs for all VBuckets on a given node. To receive a the High Sequence NUmber/VBucket UUID pair for a single VBucket then you can set the key in the stats command to `vbucket-seqno <vbid>`.
 
 #####Returns
 
