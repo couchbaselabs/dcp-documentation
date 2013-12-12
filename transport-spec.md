@@ -450,6 +450,11 @@ Extra looks like:
 * **High Seqno** - The high sequence number at the time that the
     VBucket UUID was generated.
 
+Set VBucket UUID and start sequence number to 0 to perform a full
+backfill from the "current" vbucket UUID. This may be thought of
+as a special case where the consumer don't have any data at all (to
+eliminate the need of requesting the failover log first).
+
 The response:
 * Must not have extras
 * Must not have key
