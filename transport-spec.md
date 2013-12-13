@@ -933,7 +933,7 @@ example shows the breakdown of the message:
     CAS          (16-23): 0x0000000000000000
       by seqno   (24-31): 0x0000000000000005
       rev seqno  (32-39): 0x0000000000000001
-      nmeta      (40041): 0x0000
+      nmeta      (40-41): 0x0000
     Key          (42-46): hello
 
 ###Expiration (0x59)
@@ -1004,7 +1004,7 @@ example shows the breakdown of the message:
     CAS          (16-23): 0x0000000000000000
       by seqno   (24-31): 0x0000000000000005
       rev seqno  (32-39): 0x0000000000000001
-      nmeta      (40041): 0x0000
+      nmeta      (40-41): 0x0000
     Key          (42-46): hello
 
 ###Flush (0x5a)
