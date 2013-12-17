@@ -4,11 +4,22 @@ This design doc is to explain possible optimization in XDCR when vbucket (partit
 happens due to failover or rebalance.
 
 
-### Syntax
+## Problem: unoptimized bbucket (partition) replicator restart on migration
 
-#### Strong and Emphasize 
+A bit background on how XDCR works. Today each vbucket has its own replicator responsible for replicating all mutations in that vbucket, on their arrival order.  But during topology change, which can be either source and destination, vb replicator will stop or crash on different errors such as not_my_vb as designed, at the old host node, and restart itself at new host node after migration. In particular there would be two scenarios:
 
-**strong** or __strong__ ( Cmd + B )
+##### topology change at source.  
+Say, vbucket 123 migrated from node N1 to N2 because this topology change. A new vbucket replicator process (Erlang thread) will start at N2, today we do not replicate checkpoint files to replica within cluster thus the replicator of vb 123 at N2 will start from scratch. It will start from mutation seqNo = 0 and scan all mutations by either sending getMeta to remote side (non-optimistic XDCR), or sending setWithMeta with the doc directly (optimistic XDCR). After scanning all mutations already replicated, the new vb replicator will reach the point to resume replication at N2. In this process, you may see Metadata operations (non-optimstic XDCR) at destination side. If CAPI mode XDCR is used, you will see metadata opertaions even for optimistic XDCR. Please note that,  in optimistic XMem mode, even you do not see anything on UI at destination. There are a bunch of setWithMeta/delWithMeta sent to the destination. However since they are all rejected by remote ep_engine, we would not see them on UI. But you can query that by looking at ep_engine stats. Namely,
+
+- ep_num_ops_set_meta_res_failed: Number of setWithMeta ops that failed
+- ep_num_ops_del_meta_res_failed: Number of delWithMeta ops that failed
+
+##### topology change at destination.
+Similar to 1), old replicator will crash because of `not_my_vb` errors returned to source during topology change at destination.  The new vb replicator will be started 30 second later by default, which is configurable. If at this time the topology change at destination is ready and source cluster gets the updated vb map, a new vb replicator will be able to replicate to the new host node at destination cluster.  Again, since we do not have checkpoint files replicated to replica at the destination cluster, the new vb replicator at source need to scan from scratch by sending a bunch of getMeta or setMeta operations to remote node, which is similar to 1).
+
+
+
+
 
 *emphasize* or _emphasize_ ( Cmd + I )
 
@@ -43,7 +54,7 @@ A ![Resize icon][2] reference style image.
 
 Inline code are surround by `backtick` key. To create a block code:
 
-	Indent each line by at least 1 tab, or 4 spaces.
+	Indent each line by at least 1 tab, or 4 spaces11u.
     var Mou = exactlyTheAppIwant; 
 
 ####  Ordered Lists
