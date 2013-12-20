@@ -34,4 +34,8 @@ This requires some infrastructure changes and there could be some performance co
 This is apparently high overhead optimization with biggest benefit. We can relax it to reduce the overhead, for example, we can choose to only wait for checkpoint files persisted at local replicas, instead of both local and remote. But in the case of destination topology change, we still need to start from scratch since there is no checkpoint file persisted at remote replica.
 
 
-#### Todo: other optimizations 
+#### Use remote checkpoint file to restart
+Remember today when we do a checkpoint in XDCR, we commit on both sides and thus both remote and source master share the same copy of persisted checkpoint file. When there is any topology change at source cluster and we lose source checkpoint file during migration, we may fetch a duplicate from remote cluster to determine where to restart. However, this assumes the replica and master share globally consistent sequence number and thus this optimization is invalid in pre-3.0 because each node can generates its own sequence number. Introduction of UPR changes that, we will have consistent sequence number across nodes within cluster, enable us to adopt some optimization which is not feasible before.
+
+ 
+
