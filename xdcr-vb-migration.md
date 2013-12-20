@@ -39,3 +39,5 @@ Remember today when we do a checkpoint in XDCR, we commit on both sides and thus
 
  
 
+#### more to add here
+
