@@ -1,0 +1,68 @@
+digraph {
+subgraph cluster_client {
+graph [label="Client Flow"];
+g1_connected [label=Connected,shape=doublecircle];
+g1_connected -> send_srq;
+send_srq [shape=rect,label="Send Stream Request"];
+send_srq -> g1_wait_for_response;
+g1_wait_for_response [label="Wait for Response"];
+g1_wait_for_response -> recv_rollback;
+g1_wait_for_response -> recv_ok;
+recv_rollback [shape=rect,label="Get ROLLBACK response"];
+recv_rollback -> g1_roll_back_to_indicated_sequence;
+g1_roll_back_to_indicated_sequence [label="Roll back to Indicated Sequence"];
+g1_roll_back_to_indicated_sequence -> send_srq;
+send_srq [label="Send Stream Request"];
+recv_ok [shape=rect,label="Get OK response"];
+recv_ok -> g1_receive_message_on_stream;
+g1_receive_message_on_stream [label="Receive Message on Stream"];
+g1_receive_message_on_stream -> recv_sbegin;
+recv_sbegin [shape=rect,label="Receive Snapshot Begin"];
+recv_sbegin -> g1_receive_message_for_snapshot;
+g1_receive_message_for_snapshot [label="Receive Message for Snapshot"];
+g1_receive_message_for_snapshot -> recv_items;
+g1_receive_message_for_snapshot -> recv_send;
+recv_items [shape=rect,label="Receive Items"];
+recv_items -> g1_receive_message_for_snapshot;
+g1_receive_message_for_snapshot [label="Receive Message for Snapshot"];
+recv_send [shape=rect,label="Receive Snapshot End"];
+recv_send -> g1_receive_message_on_stream;
+g1_receive_message_on_stream [label="Receive Message on Stream"];
+} ;
+subgraph cluster_server {
+graph [label="Server Flow"];
+g2_connected [label=Connected,shape=doublecircle];
+g2_connected -> recv_srq;
+recv_srq [shape=rect,label="Receive Stream Request"];
+recv_srq -> g2_is_partition_version_current_;
+g2_is_partition_version_current_ [label="Is Partition Version Current?"];
+g2_is_partition_version_current_ -> send_ok;
+g2_is_partition_version_current_ -> g2_no_look_up_version_in_version_history;
+send_ok [shape=rect,label="Yes, Send OK Response"];
+send_ok -> g2_take_snapshot;
+g2_take_snapshot [label="Take Snapshot"];
+g2_take_snapshot -> send_sbegin;
+send_sbegin [shape=rect,label="Send Snapshot Begin"];
+send_sbegin -> send_items;
+send_items [shape=rect,label="Send Items"];
+send_items -> send_send;
+send_send [shape=rect,label="Send Snapshot End"];
+send_send -> g2_take_snapshot;
+g2_take_snapshot [label="Take Snapshot"];
+g2_no_look_up_version_in_version_history [label="No, look up version
+in version history"];
+g2_no_look_up_version_in_version_history -> send_zero;
+g2_no_look_up_version_in_version_history -> send_rollback;
+send_zero [shape=rect,label="Didn't find it,
+send ROLLBACK to Zero"];
+send_rollback [shape=rect,label="Found it, send ROLLBACK to Seq
+after following entry's Seq"];
+} ;
+send_zero -> recv_rollback [constraint=false,style=dashed,arrowhead=onormal];
+send_srq -> recv_srq [constraint=false,style=dashed,arrowhead=onormal];
+send_ok -> recv_ok [constraint=false,style=dashed,arrowhead=onormal];
+send_sbegin -> recv_sbegin [constraint=false,style=dashed,arrowhead=onormal];
+send_send -> recv_send [constraint=false,style=dashed,arrowhead=onormal];
+send_items -> recv_items [constraint=false,style=dashed,arrowhead=onormal];
+send_rollback -> recv_rollback [constraint=false,style=dashed,arrowhead=onormal];
+} 

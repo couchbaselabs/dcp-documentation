@@ -1,0 +1,11 @@
+digraph {
+    rankdir=LR;
+    node[shape=rect];
+    subgraph {
+        "1" -> "2" -> "3" -> "4" -> "5" -> "6";
+    }
+    "4" -> "5'";
+    subgraph {
+        "5'" -> "6'";
+    }
+}
