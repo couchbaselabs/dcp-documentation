@@ -38,6 +38,10 @@ This is apparently high overhead optimization with biggest benefit. We can relax
 Remember today when we do a checkpoint in XDCR, we commit on both sides and thus both remote and source master share the same copy of persisted checkpoint file. When there is any topology change at source cluster and we lose source checkpoint file during migration, we may fetch a duplicate from remote cluster to determine where to restart. However, this assumes the replica and master share globally consistent sequence number and thus this optimization is invalid in pre-3.0 because each node can generates its own sequence number. Introduction of UPR changes that, we will have consistent sequence number across nodes within cluster, enable us to adopt some optimization which is not feasible before.
 
  
+## Benefit Vs. Overhead 
+We need to think about the benefit which mostly have been explained versus the overhead of optimization above. For example, if we decide to replicate to checkpoint files to replicas, it is expected that the checkpointing will take much longer than what it takes today, because master need to wait acknowledgement that all checkpoint files have been replicated and persisted in replicas. If we also commits the checkpoint file to the replicas in remote cluster, that may be even longer. Today we do checkpoint every 30 minutes, therefore the overhead is probably tolerable. But in some use cases, where frequent checkpoint is required, we may need to think to make sure if we really want replicating checkpoint files to replicas. Such decision can be made at run-time.
+
+
 
 #### more to add here
 
