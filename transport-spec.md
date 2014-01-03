@@ -679,9 +679,14 @@ replied with, and the stream is established successfully.
       vb UUID    (72-79): 0x00000000deadbeef
       vb seqno   (80-87): 0x0000000000006524
 
-As always you may receive other error messages, where "not my vbucket"
-(meaning you sent the request to the wrong server) or "key not found"
-meaning that the server don't know the vbucket uuid.
+#####Error codes
+
+* **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)** - If the producer does not know about the vbucket uuid specified. This menas the consumer should roll all the way back to 0.
+* **PROTOCOL_BINARY_RESPONSE_KEY_EEXISTS (0x02)** - If a stream for this VBucket already exists on the same connection.
+* **PROTOCOL_BINARY_RESPONSE_NOT_MY_VBUCKET (0x07)** - If the VBucket the stream is requested for does not exist.
+* **PROTOCOL_BINARY_RESPONSE_ERANGE (0x22)** - If the start and end sequence numbers are specified incorrectly. For example the start sequence number cannot be bigger than the current high sequence number in the VBucket. The start sequence number must also be less than the end sequence number.
+* **PROTOCOL_BINARY_RESPONSE_ROLLBACK (0x23)** - If the consumer needs to rollback its data before reconnecting.
+* **(Disconnect)** - If the connection is invalid or if the connection is for a consumer.
 
 ###Stream End (opcode 0x55)
 
