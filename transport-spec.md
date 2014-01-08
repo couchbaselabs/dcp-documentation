@@ -898,6 +898,8 @@ Extra looks like:
        +---------------+---------------*
        Total 18 bytes
 
+The metadata is located after the items key.
+
 The client should not send a reply to this command. The following
 example shows the breakdown of the message:
 
@@ -968,6 +970,8 @@ Extra looks like:
      16| Metadata Size                 |
        +---------------+---------------*
        Total 18 bytes
+
+The metadata is located after the items key.
 
 The client should not send a reply to this command. The following
 example shows the breakdown of the message:
