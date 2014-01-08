@@ -810,6 +810,10 @@ Extra looks like:
        +---------------+---------------*
        Total 30 bytes
 
+The metadata is located after the items value. The size for the value
+is therefore bodylen - key length - metadata size - 30 (size of extra).
+
+
 The client should not send a reply to this command. The following
 example shows the breakdown of the message:
 
