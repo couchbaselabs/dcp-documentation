@@ -396,9 +396,10 @@ failover ids available:
       vb UUID    (72-79): 0x00000000deadbeef
       vb seqno   (80-87): 0x0000000000006524
 
-There are multiple reason's why the request may fail (see the status
-field), but the one that's most likely to expect is "not my vbucket"
-if the requested vbucket isn't located on the server.
+#####Error codes
+
+* **PROTOCOL_BINARY_RESPONSE_NOT_MY_VBUCKET (0x07)** - If the VBucket the stream is requested for does not exist.
+* **(Disconnect)** - If the connection is invalid or if the connection is for a consumer.
 
 ###Stream Request (opcode 0x53)
 
