@@ -47,6 +47,10 @@ Extra looks like:
       4| flags                                                         |
        +---------------+---------------+---------------+---------------+
 
+The sequence number should be incremented by one each time you try to
+connect with a given name, so that the receiving side may decide to
+terminate connections with a lower sequence number.
+
 Flags is specified as a bitmask in network byte order with the
 following bits defined:
 
