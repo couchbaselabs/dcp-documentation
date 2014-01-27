@@ -238,21 +238,9 @@ Sent by ebucketmigrator to parties in an UPR stream to close a stream for
 a named vbucket as soon as possible
 
 The request:
-* Must have extras
+* Must not extras
 * Must not have key
 * Must not have value
-
-Extra looks like:
-
-     Byte/     0       |       1       |       2       |       3       |
-        /              |               |               |               |
-       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
-       +---------------+---------------+---------------+---------------+
-      0| opaque                                                        |
-       +---------------+---------------+---------------+---------------+
-
-The opaque field is the opaque field as returned in the body from add
-stream.
 
 The layout of a message looks like:
 
@@ -262,9 +250,9 @@ The layout of a message looks like:
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x52          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x04          | 0x00          | 0x02          | 0x10          |
+       4| 0x00          | 0x00          | 0x00          | 0x05          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x04          |
+       8| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
       12| 0xde          | 0xad          | 0xbe          | 0xef          |
         +---------------+---------------+---------------+---------------+
@@ -272,20 +260,17 @@ The layout of a message looks like:
         +---------------+---------------+---------------+---------------+
       20| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      24| 0x00          | 0x00          | 0x10          | 0x10          |
-        +---------------+---------------+---------------+---------------+
     UPR_CLOSE_STREAM command
     Field        (offset) (value)
     Magic        (0)    : 0x80
     Opcode       (1)    : 0x52
     Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x04
+    Extra length (4)    : 0x00
     Data type    (5)    : 0x00
-    Vbucket      (6,7)  : 0x0210
-    Total body   (8-11) : 0x00000004
+    Vbucket      (6,7)  : 0x0005
+    Total body   (8-11) : 0x00000000
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
-      opaque id  (24-27): 0x00001010
 
 The UPR consumer will close the UPR stream for the specified vbucket
 imediately and let the UPR producer know as soon as it receives a
