@@ -11,11 +11,11 @@ The Persist Sequence Number command can be used to figure out when an item with 
        /              |               |               |               |
       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
       +---------------+---------------+---------------+---------------+
-     0|       80      |       B7      |       00      |       0C      |
+     0|       80      |       B7      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
-     4|       10      |       00      |       00      |       00      |
+     4|       08      |       00      |       00      |       0C      |
       +---------------+---------------+---------------+---------------+
-     8|       00      |       00      |       00      |       10      |
+     8|       00      |       00      |       00      |       08      |
       +---------------+---------------+---------------+---------------+
     12|       00      |       00      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
@@ -38,15 +38,14 @@ The Persist Sequence Number command can be used to figure out when an item with 
     Field        (offset) (value)
     Magic        (0)    : 0x80                (Request)
     Opcode       (1)    : 0xB7                (Persist Sequence Number)
-    Key length   (2,3)  : 0x000C              (12)
-    Extra length (4)    : 0x10                (16)
+    Key length   (2,3)  : 0x000C              (Field not used)
+    Extra length (4)    : 0x08                (8)
     Data type    (5)    : 0x00                (Field not used)
-    VBucket      (6,7)  : 0x0000              (Field not used)
-    Total body   (8-11) : 0x00000010          (16)
+    VBucket      (6,7)  : 0x000C              (12)
+    Total body   (8-11) : 0x00000008          (8)
     Opaque       (12-15): 0x00000000          (Field not used)
     CAS          (16-23): 0x0000000000000000  (Field not used)
-	VBucket UUID (24-31): 0x00000000deadbeef  (3735928559)
-	Seqno        (32-39): 0x00000000feeddeca  (4277001930)
+	Seqno        (24-31): 0x00000000feeddeca  (4277001930)
 
     Persist Sequence Number Binary Response
 
@@ -81,10 +80,6 @@ The Persist Sequence Number command can be used to figure out when an item with 
     CAS          (16-23): 0x0000000000000000  (Field not used)
 
 #####Extra Fields
-
-**VBucket UUID**
-
-A unique UUID that can be used to differentiate different VBuckets that have the same VBucket number, but exist at different periods in time.
 
 **Seqno**
 
