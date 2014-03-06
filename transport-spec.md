@@ -687,7 +687,6 @@ replied with, and the stream is established successfully.
 
 #####Error codes
 
-* **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)** - If the producer does not know about the vbucket uuid specified. This menas the consumer should roll all the way back to 0.
 * **PROTOCOL_BINARY_RESPONSE_KEY_EEXISTS (0x02)** - If a stream for this VBucket already exists on the same connection.
 * **PROTOCOL_BINARY_RESPONSE_NOT_MY_VBUCKET (0x07)** - If the VBucket the stream is requested for does not exist.
 * **PROTOCOL_BINARY_RESPONSE_ERANGE (0x22)** - If the start and end sequence numbers are specified incorrectly. For example the start sequence number cannot be bigger than the current high sequence number in the VBucket. The start sequence number must also be less than the end sequence number.
