@@ -10,12 +10,12 @@ See the stats command for details on the packet format for stats commands. Stats
 
 The stats response from a Stats VBucket-Seqno command will look as follows:
 
-    vb_0_high_seqno 45
-    vb_0_vb_uuid 2723958720985
-    vb_1_high_seqno 78
-    vb_1_vb_uuid 7851085629020
-    vb_2_high_seqno 56
-    vb_2_vb_uuid 4560392056902
+    vb_0：high_seqno 45
+    vb_0：vb_uuid 2723958720985
+    vb_1：high_seqno 78
+    vb_1：vb_uuid 7851085629020
+    vb_2：high_seqno 56
+    vb_2：vb_uuid 4560392056902
     ...
 
 #####Errors
