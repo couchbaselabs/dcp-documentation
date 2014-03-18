@@ -181,10 +181,20 @@ If data in this packet is malformed or incomplete then this error is returned. T
       +---------------+---------------+---------------+---------------+
     20|       00      |       00      |       00      |       00      |
       +---------------+---------------+---------------+---------------+
-    24|       00      |       00      |       10      |       00      |
+    24|       63      |       6F      |       6E      |       6E      |
       +---------------+---------------+---------------+---------------+
-    24|       00      |       00      |       00      |       00      |
+    28|       65      |       63      |       74      |       69      |
       +---------------+---------------+---------------+---------------+
+    32|       6F      |       6E      |       5F      |       62      |
+      +---------------+---------------+---------------+---------------+
+    36|       75      |       66      |       66      |       65      |
+      +---------------+---------------+---------------+---------------+
+    40|       72      |       5F      |       73      |       69      |
+      +---------------+---------------+---------------+---------------+
+    44|       7A      |       65      |       34      |       30      |
+      +---------------+---------------+---------------+---------------+
+    48|       39      |       36      |
+      +---------------+---------------+
 
     Header breakdown
     Upr Control command
@@ -198,8 +208,8 @@ If data in this packet is malformed or incomplete then this error is returned. T
     Total body    (8-11) : 0x00000000          (0)
     Opaque        (12-15): 0x00000005          (0)
     CAS           (16-23): 0x0000000000000000  (Field not used)
-	Conn. Buffer  (24-27): 0x00001000          (4096)
-	Stream Buffer (28-31): 0x00000000          (0)
+	Key			  (24-45): "connection_buffer_size"
+	Value         (46-49): "4096"
 
     Upr Control Binary Response
 
@@ -232,3 +242,8 @@ If data in this packet is malformed or incomplete then this error is returned. T
     Total body   (8-11) : 0x00000000          (0)
     Opaque       (12-15): 0x00000000          (0)
     CAS          (16-23): 0x0000000000000000  (field not used)
+
+Control Message Keys:
+
+* connection_buffer_size - Used to set the connection buffer size
+* stream_buffer_size - Used to set the per stream buffer size
