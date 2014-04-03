@@ -5,6 +5,7 @@ sent. A snaphot is simply a series of commands that is guarenteed to
 contain a unique set of keys.
 
 The request:
+* Must have extras
 * Must not have key
 * Must not have value
 
@@ -17,7 +18,7 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x56          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x00          | 0x00          | 0x00          | 0x00          |
+       4| 0x09          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
        8| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -35,15 +36,19 @@ example shows the breakdown of the message:
         +---------------+
 
     UPR_SNAPSHOT_MARKER command
-    Field         (offset) (value)
-    Magic         (0)    : 0x80
-    Opcode        (1)    : 0x56
-    Key length    (2,3)  : 0x0000
-    Extra length  (4)    : 0x00
-    Data type     (5)    : 0x00
-    Vbucket       (6,7)  : 0x0000
-    Total body    (8-11) : 0x00000000
-    Opaque        (12-15): 0xdeadbeef
-    CAS           (16-23): 0x0000000000000000
-	End Seqno     (24-31): 0x0000000000000008
-	Snapshot Type (32)   : 0x00
+    Field           (offset) (value)
+    Magic           (0)    : 0x80
+    Opcode          (1)    : 0x56
+    Key length      (2,3)  : 0x0000
+    Extra length    (4)    : 0x09
+    Data type       (5)    : 0x00
+    Vbucket         (6,7)  : 0x0000
+    Total body      (8-11) : 0x00000000
+    Opaque          (12-15): 0xdeadbeef
+    CAS             (16-23): 0x0000000000000000
+      End Seqno     (24-31): 0x0000000000000008
+      Snapshot Type (32)   : 0x00
+
+Snapshot Type is defined as:
+
+TBD
