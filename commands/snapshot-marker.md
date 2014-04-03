@@ -43,7 +43,7 @@ example shows the breakdown of the message:
     Extra length    (4)    : 0x09
     Data type       (5)    : 0x00
     Vbucket         (6,7)  : 0x0000
-    Total body      (8-11) : 0x00000000
+    Total body      (8-11) : 0x00000009
     Opaque          (12-15): 0xdeadbeef
     CAS             (16-23): 0x0000000000000000
       End Seqno     (24-31): 0x0000000000000008
