@@ -30,9 +30,13 @@ example shows the breakdown of the message:
         +---------------+---------------+---------------+---------------+
       24| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      28| 0x00          | 0x00          | 0x00          | 0x08          |
+      28| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      32| 0x00          |
+      32| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      36| 0x00          | 0x00          | 0x00          | 0x08          |
+        +---------------+---------------+---------------+---------------+
+      40| 0x01          |
         +---------------+
 
     UPR_SNAPSHOT_MARKER command
@@ -40,15 +44,17 @@ example shows the breakdown of the message:
     Magic           (0)    : 0x80
     Opcode          (1)    : 0x56
     Key length      (2,3)  : 0x0000
-    Extra length    (4)    : 0x09
+    Extra length    (4)    : 0x11
     Data type       (5)    : 0x00
     Vbucket         (6,7)  : 0x0000
-    Total body      (8-11) : 0x00000009
+    Total body      (8-11) : 0x00000011
     Opaque          (12-15): 0xdeadbeef
     CAS             (16-23): 0x0000000000000000
-      End Seqno     (24-31): 0x0000000000000008
-      Snapshot Type (32)   : 0x00
+      Start Seqno   (24-31): 0x0000000000000000
+      End Seqno     (32-39): 0x0000000000000008
+      Snapshot Type (40)   : 0x01 (disk)
 
 Snapshot Type is defined as:
 
-TBD
+* 0x00 (memory) - Specifies that the snapshot contains in-meory items only.
+* 0x01 (disk) - Specifies that the snapshot contains on-disk items only.
