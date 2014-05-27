@@ -439,10 +439,13 @@ Extra looks like:
      24| VBucket UUID                                                  |
        |                                                               |
        +---------------+---------------+---------------+---------------+
-     32| High sequence number                                          |
+     32| Snapshot Start Seqno                                          |
        |                                                               |
        +---------------+---------------+---------------+---------------+
-       Total 40 bytes
+     40| Snapshot End Seqno                                            |
+       |                                                               |
+       +---------------+---------------+---------------+---------------+
+       Total 48 bytes
 
 * **Flags** - Used to specify extra information added in the extra
     section for modifying what the stream send.
@@ -453,13 +456,19 @@ Extra looks like:
 * **VBucket UUID** - A unique identifier that is generated that is
     assigned to each VBucket. This number is generated on an unclean
     shutdown or when a Vbucket becomes active.
-* **High Seqno** - The high sequence number at the time that the
-    VBucket UUID was generated.
+* **Snapshot Start Seqno** - 0 by default, in case it is a retry
+    because the stream request didn't return all expected results,
+    use the start sequence of the last partial snapshot that was
+    received.
+* **Snapshot End Seqno** - 0 by default, in case it is a retry
+    because the stream request didn't return all expected results,
+    use the end sequence of the last partial snapshot that was
+    received.
 
-Set VBucket UUID and start sequence number to 0 to perform a full
-backfill from the "current" vbucket UUID. This may be thought of
-as a special case where the consumer don't have any data at all (to
-eliminate the need of requesting the failover log first).
+Set VBucket UUID to 0 to perform a full backfill from the "current"
+vbucket UUID. This may be thought of as a special case where the
+consumer don't have any data at all (to eliminate the need of
+requesting the failover log first).
 
 The response:
 * Must not have extras
@@ -481,9 +490,9 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x53          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x28          | 0x00          | 0x00          | 0x00          |
+       4| 0x30          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x28          |
+       8| 0x00          | 0x00          | 0x00          | 0x30          |
         +---------------+---------------+---------------+---------------+
       12| 0x00          | 0x00          | 0x10          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -509,25 +518,30 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
       56| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      60| 0x00          | 0x00          | 0x00          | 0x00          |
+      60| 0x00          | 0xff          | 0xee          | 0xdd          |
+        +---------------+---------------+---------------+---------------+
+      64| 0x00          | 0x00          | 0x00          | 0x00          |
+        +---------------+---------------+---------------+---------------+
+      68| 0x00          | 0xff          | 0xee          | 0xff          |
         +---------------+---------------+---------------+---------------+
     UPR_STREAM_REQ command
-    Field        (offset) (value)
-    Magic        (0)    : 0x80
-    Opcode       (1)    : 0x53
-    Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x28
-    Data type    (5)    : 0x00
-    Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000028
-    Opaque       (12-15): 0x00001000
-    CAS          (16-23): 0x0000000000000000
-      flags      (24-27): 0x00000000
-      reserved   (28-31): 0x00000000
-      start seqno(32-39): 0x0000000000ffeedd
-      end seqno  (40-47): 0xffffffffffffffff
-      vb UUID    (48-55): 0x00000000feeddeca
-      high seqno (56-63): 0x0000000000000000
+    Field                  (offset) (value)
+    Magic                  (0)    : 0x80
+    Opcode                 (1)    : 0x53
+    Key length             (2,3)  : 0x0000
+    Extra length           (4)    : 0x30
+    Data type              (5)    : 0x00
+    Vbucket                (6,7)  : 0x0000
+    Total body             (8-11) : 0x00000030
+    Opaque                 (12-15): 0x00001000
+    CAS                    (16-23): 0x0000000000000000
+      flags                (24-27): 0x00000000
+      reserved             (28-31): 0x00000000
+      start seqno          (32-39): 0x0000000000ffeedd
+      end seqno            (40-47): 0xffffffffffffffff
+      vb UUID              (48-55): 0x00000000feeddeca
+      snapshot start seqno (56-63): 0x0000000000000000
+	  snapshot end seqno   (64-71): 0x0000000000ffeeff
 
 
       Byte/     0       |       1       |       2       |       3       |
@@ -569,9 +583,9 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
        0| 0x80          | 0x53          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x28          | 0x00          | 0x00          | 0x00          |
+       4| 0x30          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x28          |
+       8| 0x00          | 0x00          | 0x00          | 0x30          |
         +---------------+---------------+---------------+---------------+
       12| 0x00          | 0x00          | 0x10          | 0x00          |
         +---------------+---------------+---------------+---------------+
@@ -600,22 +614,23 @@ replied with, and the stream is established successfully.
       60| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
     UPR_STREAM_REQ command
-    Field        (offset) (value)
-    Magic        (0)    : 0x80
-    Opcode       (1)    : 0x53
-    Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x28
-    Data type    (5)    : 0x00
-    Vbucket      (6,7)  : 0x0000
-    Total body   (8-11) : 0x00000028
-    Opaque       (12-15): 0x00001000
-    CAS          (16-23): 0x0000000000000000
-      flags      (24-27): 0x00000000
-      reserved   (28-31): 0x00000000
-      start seqno(32-39): 0x0000000000000000
-      end seqno  (40-47): 0xffffffffffffffff
-      vb UUID    (48-55): 0x00000000feeddeca
-      high seqno (56-63): 0x0000000000000000
+    Field                  (offset) (value)
+    Magic                  (0)    : 0x80
+    Opcode                 (1)    : 0x53
+    Key length             (2,3)  : 0x0000
+    Extra length           (4)    : 0x30
+    Data type              (5)    : 0x00
+    Vbucket                (6,7)  : 0x0000
+    Total body             (8-11) : 0x00000030
+    Opaque                 (12-15): 0x00001000
+    CAS                    (16-23): 0x0000000000000000
+      flags                (24-27): 0x00000000
+      reserved             (28-31): 0x00000000
+      start seqno          (32-39): 0x0000000000000000
+      end seqno            (40-47): 0xffffffffffffffff
+      vb UUID              (48-55): 0x00000000feeddeca
+      snapshot start seqno (56-63): 0x0000000000000000
+      snapshot end seqno   (64-71): 0x0000000000000000
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |
@@ -625,7 +640,7 @@ replied with, and the stream is established successfully.
         +---------------+---------------+---------------+---------------+
        4| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       8| 0x00          | 0x00          | 0x00          | 0x00          |
+       8| 0x00          | 0x00          | 0x00          | 0x40          |
         +---------------+---------------+---------------+---------------+
       12| 0x00          | 0x00          | 0x10          | 0x00          |
         +---------------+---------------+---------------+---------------+
