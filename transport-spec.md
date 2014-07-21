@@ -456,14 +456,14 @@ Extra looks like:
 * **VBucket UUID** - A unique identifier that is generated that is
     assigned to each VBucket. This number is generated on an unclean
     shutdown or when a Vbucket becomes active.
-* **Snapshot Start Seqno** - 0 by default, in case it is a retry
-    because the stream request didn't return all expected results,
-    use the start sequence of the last partial snapshot that was
-    received.
-* **Snapshot End Seqno** - 0 by default, in case it is a retry
-    because the stream request didn't return all expected results,
-    use the end sequence of the last partial snapshot that was
-    received.
+* **Snapshot Start Seqno** - Set to the same value as the start seqno
+    by default, in case it is a retry because the stream request didn't
+    return all expected results use the start sequence of the last
+    partial snapshot that was received.
+* **Snapshot End Seqno** - Set to the same value as the start seqno by
+    default, in case it is a retry because the stream request didn't
+    return all expected results, use the end sequence of the last partial
+    snapshot that was received.
 
 Set VBucket UUID to 0 to perform a full backfill from the "current"
 vbucket UUID. This may be thought of as a special case where the
