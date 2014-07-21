@@ -815,8 +815,9 @@ example shows the breakdown of the message:
 
 Snapshot Type is defined as:
 
-* 0x00000000 (memory) - Specifies that the snapshot contains in-meory items only.
-* 0x00000001 (disk) - Specifies that the snapshot contains on-disk items only.
+* 0x01 (memory) - Specifies that the snapshot contains in-meory items only.
+* 0x02 (disk) - Specifies that the snapshot contains on-disk items only.
+* 0x04 (checkpoint) - An internally used flag for intra-cluster replication to help to keep in-memory datastructures look similar.
 
 
 ###Mutation (0x57)
