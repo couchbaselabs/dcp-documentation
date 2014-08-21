@@ -1066,6 +1066,7 @@ example shows the breakdown of the message:
     Key          (42-46): hello
 
 ###Flush (0x5a)
+
 Tells the consumer to delete all of its data for a given vbucket.
 
 The request:
