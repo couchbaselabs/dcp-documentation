@@ -205,7 +205,7 @@ If data in this packet is malformed or incomplete then this error is returned. T
     Extra length  (4)    : 0x00                (0)
     Data type     (5)    : 0x00                (Field not used)
     VBucket       (6,7)  : 0x0000              (Field not used)
-    Total body    (8-11) : 0x00000000          (0)
+    Total body    (8-11) : 0x0000001a          (0)
     Opaque        (12-15): 0x00000005          (0)
     CAS           (16-23): 0x0000000000000000  (Field not used)
 	Key			  (24-45): "connection_buffer_size"
