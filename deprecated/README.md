@@ -6,7 +6,7 @@ UPR stands for "Universal Protocol for Replication" and the purpose of this proj
 ###UPR High-level Details
 
 * [UPR Overview](../overview.md)
-* [Transport Protocol Specification](../protocol.md)
+* [Transport Protocol Specification](../documentation/protocol.md)
 * [Failure Scenarios](../failure-scenarios.md)
 * [Throttling/Dead Connections](../dead-connections.md)
 
@@ -52,7 +52,7 @@ The current tap implementation is too difficult to use and laks the features nee
 
 we need to support upgrades from 2.x to 3.x. The link below describes how the upgrade process will work.
 
-* [Upgrade (2.x) to (3.x)](../upgrade.md)
+* [Upgrade (2.x) to (3.x)](../documentation/upgrade.md)
 
 
 #####Testing Resources
@@ -62,9 +62,9 @@ we need to support upgrades from 2.x to 3.x. The link below describes how the up
 
 #####Other
 
-* [Random Key Command](../commands/random_key.md)
-* [Persist Seqno Command](../commands/persist_seqno.md)
-* [Stats VBucket-Seqno Command](../commands/stats-vbucket-seqno.md)
+* [Random Key Command](../documentation/commands/random_key.md)
+* [Persist Seqno Command](../documentation/commands/persist_seqno.md)
+* [Stats VBucket-Seqno Command](../documentation/commands/stats-vbucket-seqno.md)
 
 ###Deprecated Documents
 
