@@ -25,5 +25,5 @@ The Database Change Protocol (DCP) a protocol used by Couchbase for moving large
 	* XDCR Integration
 	* View Engine Integration
 	* Backup Tool
-	* Upgrade (2.x to 3.x)
+	* [Upgrade (2.x to 3.x)](upgrade.md)
 * [Future Work](future-work.md)
