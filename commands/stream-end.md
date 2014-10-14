@@ -7,8 +7,7 @@ The request:
 * Must not have key
 * Must not have value
 
-The client should not send a reply to this command. The following
-example shows the breakdown of the message:
+The client should not send a reply to this command. The following example shows the breakdown of the message:
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |

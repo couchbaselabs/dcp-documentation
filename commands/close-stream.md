@@ -1,7 +1,6 @@
 ###Close Stream (opcode 0x52)
 
-Sent to server controling an DCP stream to close the stream for
-a named vbucket as soon as possible.
+Sent to server controling an DCP stream to close the stream for a named vbucket as soon as possible.
 
 The request:
 * Must not extras
@@ -38,14 +37,9 @@ The layout of a message looks like:
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
 
-If received on the consumer side the consumer will close the stream for
-the specified vbucket imediately and let the producer know that the stream
-is closed as soon as it receives a message bound for that vbucket.
+If received on the consumer side the consumer will close the stream for the specified vbucket imediately and let the producer know that the stream is closed as soon as it receives a message bound for that vbucket.
 
-If received on the producer side the producer will send an end stream
-message to the consumer indicating that the stream was closed by force.
-The producer may still receive response messages from the consumer for
-this stream.
+If received on the producer side the producer will send an end stream message to the consumer indicating that the stream was closed by force. The producer may still receive response messages from the consumer for this stream.
 
 ###Returns
 

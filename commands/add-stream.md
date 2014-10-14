@@ -1,6 +1,6 @@
 #Add Stream (opcode 0x51)
 
-Sent the consumer to tell the consumer to initiate a stream request with the producer.
+Sent to the consumer to tell the consumer to initiate a stream request with the producer.
 
 The request:
 

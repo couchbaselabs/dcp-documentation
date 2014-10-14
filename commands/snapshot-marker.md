@@ -1,16 +1,13 @@
 ###Snapshot Marker (opcode 0x56)
 
-Sent by the producer to tell the consumer that a new snapshot is being
-sent. A snaphot is simply a series of commands that is guarenteed to
-contain a unique set of keys.
+Sent by the producer to tell the consumer that a new snapshot is being sent. A snaphot is simply a series of commands that is guarenteed to contain a unique set of keys.
 
 The request:
 * Must have extras
 * Must not have key
 * Must not have value
 
-The client should not send a reply to this command unless the ack
-flag is set. The following example shows the breakdown of the message:
+The client should not send a reply to this command unless the ack flag is set. The following example shows the breakdown of the message:
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |

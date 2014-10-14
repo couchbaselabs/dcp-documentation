@@ -1,8 +1,6 @@
 ###Set VBucket State (0x5b)
 
-The Set VBucket message is used during the VBucket takeover process to
-hand off ownership of a VBucket between two nodes. The message format
-as well as the state values for this operation is below.
+The Set VBucket message is used during the VBucket takeover process to hand off ownership of a VBucket between two nodes. The message format as well as the state values for this operation is below.
 
 The request:
 * Must have extras
@@ -26,8 +24,7 @@ State may have the following values:
 * Replica (0x03) - Changes the VBucket on the consumer side to replica state.
 * Dead (0x04) - Changes the VBucket on the consumer side to dead state.
 
-The client should not send a reply to this command. The following
-example shows the breakdown of the message:
+The client should not send a reply to this command. The following example shows the breakdown of the message:
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |

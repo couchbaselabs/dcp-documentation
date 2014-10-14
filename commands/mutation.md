@@ -1,4 +1,5 @@
 ###Mutation (0x57)
+
 Tells the consumer that the message contains a key mutation.
 
 The request:
@@ -28,15 +29,12 @@ Extra looks like:
        +---------------+---------------+---------------+
        Total 30 bytes
 
-The metadata is located after the items value. The size for the value
-is therefore bodylen - key length - metadata size - 30 (size of extra).
+The metadata is located after the items value. The size for the value is therefore bodylen - key length - metadata size - 30 (size of extra).
 
-NRU is an internal field used by the server and may safely be ignored
-by other consumers.
+NRU is an internal field used by the server and may safely be ignored by other consumers.
 
 
-The consumer should not send a reply to this command. The following
-example shows the breakdown of the message:
+The consumer should not send a reply to this command. The following example shows the breakdown of the message:
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |

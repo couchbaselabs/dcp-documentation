@@ -1,11 +1,6 @@
 ###Failover Log Request (opcode 0x54)
 
-The Failover log request is used by the consumer to request all known
-failover ids a client may use to continue from. A failover id consists
-of the vbucket UUID and a sequence number. If a client can't find a
-known failover id, it should select the vbucket with the highest
-sequence number since that is the stream with the shortest path
-to completion.
+The Failover log request is used by the consumer to request all known failover ids a client may use to continue from. A failover id consists of the vbucket UUID and a sequence number. If a client can't find a known failover id, it should select the vbucket with the highest sequence number since that is the stream with the shortest path to completion.
 
 The request:
 * Must not have extras
@@ -47,9 +42,7 @@ The following example requests the failover log for vbucket 0:
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
 
-If the command executes successful (see the status field), the
-following packet is returned from a server which have 4 different
-failover ids available:
+If the command executes successful (see the status field), the following packet is returned from a server which have 4 different failover ids available:
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |

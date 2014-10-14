@@ -1,11 +1,6 @@
 ###Stream Request (opcode 0x53)
 
-Sent by the consumer side to the producer specifying that the consumer
-wants to create a vbucket stream. In order to initial a stream for
-a vbucket the consumer must send the following command below. In order
-to initiate multiple stream the consumer needs to send multiple
-commands. The value specified in opaque in the stream request packet
-will be used as opaque field in all commands sent for the stream.
+Sent by the consumer side to the producer specifying that the consumer wants to create a vbucket stream. In order to initial a stream for a vbucket the consumer must send the following command below. In order to initiate multiple stream the consumer needs to send multiple commands. The value specified in opaque in the stream request packet will be used as opaque field in all commands sent for the stream.
 
 The request:
 * Must have extras
@@ -39,42 +34,23 @@ Extra looks like:
        +---------------+---------------+---------------+---------------+
        Total 48 bytes
 
-* **Flags** - Used to specify extra information added in the extra
-    section for modifying what the stream send.
-* **Start By Seqno** - Specified the last by sequence number that has
-    been seen by the consumer.
-* **End By Seqno** - Specifies that the stream should be closed when
-    the sequence number with this ID has been sent.
-* **VBucket UUID** - A unique identifier that is generated that is
-    assigned to each VBucket. This number is generated on an unclean
-    shutdown or when a Vbucket becomes active.
-* **Snapshot Start Seqno** - Set to the same value as the start seqno
-    by default, in case it is a retry because the stream request didn't
-    return all expected results use the start sequence of the last
-    partial snapshot that was received.
-* **Snapshot End Seqno** - Set to the same value as the start seqno by
-    default, in case it is a retry because the stream request didn't
-    return all expected results, use the end sequence of the last partial
-    snapshot that was received.
+* **Flags** - Used to specify extra information added in the extra section for modifying what the stream send.
+* **Start By Seqno** - Specified the last by sequence number that has been seen by the consumer.
+* **End By Seqno** - Specifies that the stream should be closed when the sequence number with this ID has been sent.
+* **VBucket UUID** - A unique identifier that is generated that is assigned to each VBucket. This number is generated on an unclean shutdown or when a Vbucket becomes active.
+* **Snapshot Start Seqno** - Set to the same value as the start seqno by default, in case it is a retry because the stream request didn't return all expected results use the start sequence of the last partial snapshot that was received.
+* **Snapshot End Seqno** - Set to the same value as the start seqno by default, in case it is a retry because the stream request didn't  return all expected results, use the end sequence of the last partial snapshot that was received.
 
-Set VBucket UUID to 0 to receive all data from the specified
-vbucket. This may be thought of as a special case where the
-consumer don't have any data at all (to eliminate the need of
-requesting the failover log first).
+Set VBucket UUID to 0 to receive all data from the specified vbucket. This may be thought of as a special case where the consumer don't have any data at all (to eliminate the need of requesting the failover log first).
 
 The response:
 * Must not have extras
 * Must not have key
 * May have value
 
-On an "OK" response the failover log is included. The "rollback"
-response contains the sequence number to roll back to.
+On an "OK" response the failover log is included. The "rollback" response contains the sequence number to roll back to.
 
-The following example tries to initiate a stream for vbucket 0 that
-continues from a given point in time, but the server can't continue
-from that point and tells the client to roll back to a different
-sequence. The client retries with the information that the server
-replied with, and the stream is established successfully.
+The following example tries to initiate a stream for vbucket 0 that continues from a given point in time, but the server can't continue from that point and tells the client to roll back to a different sequence. The client retries with the information that the server replied with, and the stream is established successfully.
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |

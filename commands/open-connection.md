@@ -1,7 +1,6 @@
 #Open Connection (opcode 0x50)
 
-Sent by an external entity to a producer or a consumer to create a
-logical channel.
+Sent by an external entity to a producer or a consumer to create a logical channel.
 
 The request:
 
@@ -20,12 +19,9 @@ Extra looks like:
       4| flags                                                         |
        +---------------+---------------+---------------+---------------+
 
-The sequence number should be incremented by one each time you try to
-connect with a given name, so that the receiving side may decide to
-terminate connections with a lower sequence number.
+The sequence number should be incremented by one each time you try to connect with a given name, so that the receiving side may decide to terminate connections with a lower sequence number.
 
-Flags are specified as a bitmask in network byte order with the
-following bits defined:
+Flags are specified as a bitmask in network byte order with the following bits defined:
 
      1 - Type: Producer (bit set) / Consumer (bit cleared).
 
