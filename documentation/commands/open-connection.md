@@ -2,8 +2,6 @@
 
 Sent by an external entity to a producer or a consumer to create a logical channel.
 
-**Note:** If the name given in the open connection command is already being used by another established connection then the established connection will be closed and the new connection will be created successfully.
-
 The request:
 
 * Must have an 8 byte extras section
@@ -105,6 +103,8 @@ Upon success, the following message is returned.
     Total body   (8-11) : 0x00000000
     Opaque       (12-15): 0x00000001
     CAS          (16-23): 0x0000000000000000
+
+**Note:** If the name given in the open connection command is already being used by another established connection then the established connection will be closed and the new connection will be created successfully.
 
 ###Returns
 
