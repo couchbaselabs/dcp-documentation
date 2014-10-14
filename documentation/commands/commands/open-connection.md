@@ -14,12 +14,10 @@ Extra looks like:
         /              |               |               |               |
        |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
        +---------------+---------------+---------------+---------------+
-      0| sequence number                                               |
+      0| Reserved                                                      |
        +---------------+---------------+---------------+---------------+
       4| flags                                                         |
        +---------------+---------------+---------------+---------------+
-
-The sequence number should be incremented by one each time you try to connect with a given name, so that the receiving side may decide to terminate connections with a lower sequence number.
 
 Flags are specified as a bitmask in network byte order with the following bits defined:
 
