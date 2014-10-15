@@ -32,7 +32,7 @@ XDCR currently reads items from disk in order to replicate them accross wide are
 
 * [XDCR (3.x) in PDF](../XDCRTombpurgerandUPR.pdf)
 * [XDCR restart optimization](../xdcr-vb-migration.md)
-* [Notifier Connection](../notifier-connection.md)
+* [Notifier Connection](../documentation/notifier-connection.md)
 
 #####Consistent Views
 
