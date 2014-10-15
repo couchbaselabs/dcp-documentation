@@ -17,7 +17,7 @@ UPR stands for "Universal Protocol for Replication" and the purpose of this proj
 A cluster rebalance is made up of multiple VBucket moves. Below are links to the current (2.x) and future (3.x) procedures.
 
 * [VBucket Move (2.x)](https://github.com/couchbaselabs/ep-engine-designs/blob/master/architecture/vbucket-move.md)
-* [Vbucket Move (3.x)](../rebalance.md)
+* [Vbucket Move (3.x)](../documentation/rebalance.md)
 
 #####Indexing
 
