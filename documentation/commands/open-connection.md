@@ -23,6 +23,10 @@ Flags are specified as a bitmask in network byte order with the following bits d
 
      1 - Type: Producer (bit set) / Consumer (bit cleared).
 
+When setting the Producer or Consumer flag the sender is telling the server what type of connection will be created. For example, if the Producer type is set then the sender of the Open Connection message will be a Consumer.
+
+The connection name is specified using the key field. When selecting a name the only requirement is that the name take up no more space than 256 bytes. It is recommended that the name uses that ASCII character set and uses alpha-numeric characters.
+
 The following example shows the breakdown of the message:
 
       Byte/     0       |       1       |       2       |       3       |
@@ -92,7 +96,7 @@ Upon success, the following message is returned.
       20| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
 
-    UPR_OPEN response
+    DCP_OPEN response
     Field        (offset) (value)
     Magic        (0)    : 0x81
     Opcode       (1)    : 0x50
