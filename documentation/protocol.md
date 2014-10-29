@@ -22,5 +22,6 @@ The typical scenario begins with the client requesting a stream. Upon success th
 * [**Flush**](commands/flush.md)
 * [**Set VBucket State**](commands/set-vbucket-state.md)
 * [**No-Op**](commands/no-op.md)
+* [**Buffer Acknowledgement**](commands/buffer-ack.md)
 * [**Control**](commands/control.md)
 
