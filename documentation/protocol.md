@@ -21,5 +21,6 @@ The typical scenario begins with the client requesting a stream. Upon success th
 * [**Expiration**](commands/expiration.md)
 * [**Flush**](commands/flush.md)
 * [**Set VBucket State**](commands/set-vbucket-state.md)
+* [**No-Op**](commands/no-op.md)
 * [**Control**](commands/control.md)
 
