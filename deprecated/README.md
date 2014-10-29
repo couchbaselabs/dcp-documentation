@@ -7,7 +7,7 @@ UPR stands for "Universal Protocol for Replication" and the purpose of this proj
 
 * [UPR Overview](overview.md)
 * [Transport Protocol Specification](../documentation/protocol.md)
-* [Failure Scenarios](../failure-scenarios.md)
+* [Failure Scenarios](../documentation/failure-scenarios.md)
 * [Dead Connections](../documentation/dead-connections.md)
 
 ###Use Cases
