@@ -37,7 +37,7 @@ XDCR currently reads items from disk in order to replicate them accross wide are
 
 A major feature that has been asked for by customers is the ability to support consistent views. This means that when a user does a "set" command they can immediately query the view and expect to see the data that was set in the view. Below are links to the current (2.x) and future (3.x) plan.
 
-* [Consistent Views (3.x)](../ryow.md)
+* [Consistent Views (3.x)](ryow.md)
 
 #####Third-Party
 
