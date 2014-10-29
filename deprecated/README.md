@@ -43,7 +43,7 @@ A major feature that has been asked for by customers is the ability to support c
 
 The current tap implementation is too difficult to use and laks the features needed to build third-party applications. Below are links to use cases for how UPR can be used to succesfully build new applications.
 
-* [Creating an UPR Session](../upr-session.md)
+* [Creating an UPR Session](../documentation/protocol-flow.md)
 * Streaming all data from a cluster
 * [Using filters on a tap stream](https://docs.google.com/document/d/1K6RGIxVMygQNUwu3fSn3HiSTSHL_iISxTN6fiZYVn5U)
 
