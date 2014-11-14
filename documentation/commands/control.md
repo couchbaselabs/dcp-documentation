@@ -13,7 +13,7 @@ Valid Keys:
 
 * "set_noop_interval" - Sets the noop interval on the Producer. Values for this parameter should be an integer in string form between 20 and 10800. This allows the noop interval to be set between 20 seconds and 3 hours. This parameter should always be set when enabling noops to prevent the Consumer and Producer having a different noop interval. This parameter is available starting in Couchbase 3.0.1.
 
-* "set_conn_buffer" - Used to tell the Producer the size of the Consumer side buffer in bytes which the Consumer is using for flow control. The value of this parameter should be an integer in string form between 1 and 2^32. See the page on [flow control]() for more details. This parameter is available starting in Couchbase 3.0.
+* "connection_buffer_size" - Used to tell the Producer the size of the Consumer side buffer in bytes which the Consumer is using for flow control. The value of this parameter should be an integer in string form between 1 and 2^32. See the page on [flow control]() for more details. This parameter is available starting in Couchbase 3.0.
 
 The following example shows the breakdown of the message:
 
