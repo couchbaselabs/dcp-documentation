@@ -34,7 +34,7 @@ Extra looks like:
        +---------------+---------------+---------------+---------------+
        Total 48 bytes
 
-* **Flags** - Used to specify extra information added in the extra section for modifying what the stream send.
+* **Flags** - Used to specify extra information added in the extra section for modifying what the stream send. The available flags for this message are the same ones specified for the [Add Stream](add-stream.md) message.
 * **Start By Seqno** - Specified the last by sequence number that has been seen by the consumer.
 * **End By Seqno** - Specifies that the stream should be closed when the sequence number with this ID has been sent.
 * **VBucket UUID** - A unique identifier that is generated that is assigned to each VBucket. This number is generated on an unclean shutdown or when a Vbucket becomes active.
