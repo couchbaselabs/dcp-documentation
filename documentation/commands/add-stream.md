@@ -22,6 +22,7 @@ following bits defined:
 
 * 0x01 (Takeover) - Specifies that the stream should send over all remaining data to the remote node and then set the remote nodes vbucket to active state and the source nodes vbucket to dead.
 * 0x02 (Disk Only) - Specifies that the stream should only send items only if they are on disk. The first item sent is specified by the start sequence number and items will be sent up to the sequence number specified by the end sequence number or the last on disk item when the stream is created.
+* 0x04 (Latest) - Specifies that the server should stream all mutations up to the current sequence number for that VBucket. The server will overwrite the value of the end sequence number field with the value of the latest sequence number.
 
 The following example shows the breakdown of the message:
 
