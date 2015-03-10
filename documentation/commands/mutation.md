@@ -99,6 +99,10 @@ The consumer should not send a reply to this command. The following example show
 
 This message will not return a response unless an error occurs.
 
+###Extended Meta Data Section
+The extended meta data section is used to send extra meta data for a particular mutation. This section is at the very end, after the value. Its length will be set in the nmeta field.
+* [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
+
 ###Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
