@@ -109,7 +109,7 @@ The following example tries to initiate a stream for vbucket 0 that continues fr
       end seqno            (40-47): 0xffffffffffffffff
       vb UUID              (48-55): 0x00000000feeddeca
       snapshot start seqno (56-63): 0x0000000000000000
-	  snapshot end seqno   (64-71): 0x0000000000ffeeff
+      snapshot end seqno   (64-71): 0x0000000000ffeeff
 
 
       Byte/     0       |       1       |       2       |       3       |
@@ -118,7 +118,7 @@ The following example tries to initiate a stream for vbucket 0 that continues fr
         +---------------+---------------+---------------+---------------+
        0| 0x81          | 0x53          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-       4| 0x08          | 0x00          | 0x00          | 0x23          |
+       4| 0x00          | 0x00          | 0x00          | 0x23          |
         +---------------+---------------+---------------+---------------+
        8| 0x00          | 0x00          | 0x00          | 0x08          |
         +---------------+---------------+---------------+---------------+
@@ -138,7 +138,7 @@ The following example tries to initiate a stream for vbucket 0 that continues fr
     Magic        (0)    : 0x81
     Opcode       (1)    : 0x53
     Key length   (2,3)  : 0x0000
-    Extra length (4)    : 0x08
+    Extra length (4)    : 0x00
     Data type    (5)    : 0x00
     Status       (6,7)  : 0x0023 (Rollback)
     Total body   (8-11) : 0x00000008
