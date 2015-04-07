@@ -122,7 +122,7 @@ Tests with external clients were ran for 15 minutes each and items remaining in 
 	| 14,000 | 763/5604/7673  |1613/6454/7901|             |                    |
 	|--------|----------------|--------------|-------------|--------------------|
 
-* [Replication with 1 client](rep-1_client)
-* [Replication with 5 clients](rep-5_clients)
-* [Replication with 10 clients](rep-10_clients)
-* [Replication with 25 clients](rep-25_clients)
+* [Replication with 1 client](rep-1_client.md)
+* [Replication with 5 clients](rep-5_clients.md)
+* [Replication with 10 clients](rep-10_clients.md)
+* [Replication with 25 clients](rep-25_clients.md)
