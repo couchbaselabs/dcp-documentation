@@ -21,3 +21,17 @@
 ![10k-latency_perc-views](images/views/10k_latency_perc.png)
 
 ![10k-cpu-views](images/views/10k_cpu.png)
+
+###11,000 sets/sec
+
+![11k-ops-views](images/views/11k_ops.png)
+
+![11k-items-views](images/views/11k_items.png)
+
+![11k-bytes-views](images/views/11k_bytes.png)
+
+![11k-latency_raw-views](images/views/11k_latency_raw.png)
+
+![11k-latency_perc-views](images/views/11k_latency_perc.png)
+
+![11k-cpu-views](images/views/11k_cpu.png)
