@@ -10,12 +10,57 @@
 
 ###11,000 sets/sec
 
-![10k-items-views](images/10k-items-views.png)
+![11k-ops-replication](images/replication_with_views/11k_ops.png)
 
-![10k-bytes-views](images/10k-bytes-views.png)
+![11k-items-replication](images/replication_with_views/11k_items.png)
+
+![11k-bytes-replication](images/replication_with_views/11k_bytes.png)
+
+![11k-latency_raw-replication](images/replication_with_views/11k_latency_raw.png)
+
+![11k-latency_perc-replication](images/replication_with_views/11k_latency_perc.png)
+
+![11k-cpu-replication](images/replication_with_views/11k_cpu.png)
 
 ###12,000 sets/sec
 
-![11k-items-views](images/11k-items-views.png)
+![12k-ops-replication](images/replication_with_views/12k_ops.png)
 
-![11k-bytes-views](images/11k-bytes-views.png)
+![12k-items-replication](images/replication_with_views/12k_items.png)
+
+![12k-bytes-replication](images/replication_with_views/12k_bytes.png)
+
+![12k-latency_raw-replication](images/replication_with_views/12k_latency_raw.png)
+
+![12k-latency_perc-replication](images/replication_with_views/12k_latency_perc.png)
+
+![12k-cpu-replication](images/replication_with_views/12k_cpu.png)
+
+###13,000 sets/sec
+
+![13k-ops-replication](images/replication_with_views/13k_ops.png)
+
+![13k-items-replication](images/replication_with_views/13k_items.png)
+
+![13k-bytes-replication](images/replication_with_views/13k_bytes.png)
+
+![13k-latency_raw-replication](images/replication_with_views/13k_latency_raw.png)
+
+![13k-latency_perc-replication](images/replication_with_views/13k_latency_perc.png)
+
+![13k-cpu-replication](images/replication_with_views/13k_cpu.png)
+
+###14,000 sets/sec
+
+![14k-ops-replication](images/replication_with_views/14k_ops.png)
+
+![14k-items-replication](images/replication_with_views/14k_items.png)
+
+![14k-bytes-replication](images/replication_with_views/14k_bytes.png)
+
+![14k-latency_raw-replication](images/replication_with_views/14k_latency_raw.png)
+
+![14k-latency_perc-replication](images/replication_with_views/14k_latency_perc.png)
+
+![14k-cpu-replication](images/replication_with_views/14k_cpu.png)
+

@@ -1,12 +1,12 @@
-#3.0.2 VM Based Testing
+#Sherlock VM Based Testing
 
-###Hardware Setup
+##Hardware Setup
 
 **Server Specs:**
 
 * Centos 6 VM
 * 4 Core ()
-* 4GB RAM
+* 8GB RAM
 * 2 Servers
 
 **Client Specs:**
@@ -16,52 +16,115 @@
 * 4GB RAM
 * 1 Server
 
-###Testing
+##Testing
 
-Baseline tests were ran for 15 minutes each and items remaining in the replication queue (items remaining) as well as network utilization (bytes sent per second) were measured. The intent was to find the point at which items remaining to be replicated became large or varied highly. We consider the expected amount of items to be remaining for replication at any given time to be 15% of the incoming sets/sec to be an expected scenario. Each test uses value sizes of 1KB.
+###Baseline Tests
+
+Baseline tests were ran for 15 minutes each and items remaining in the replication queue (items remaining) as well as network utilization (bytes sent per second) were measured. The intent was to find the point at which items remaining to be replicated became large or varied highly. We consider the expected amount of items to be remaining for replication at any given time to be 15% of the incoming sets/sec to be an expected scenario. Each test uses value sizes of 1KB. Note that stats are collected across all nodes. For example this means and 1000 items remaining on average means means 500 items reminaing on each node given a two node cluster.
 
 	Replication Items Remaining (Avg/Max)
 
-	|--------|-------------|-------------|-------------|--------------------|
-	|Ops/Sec | Replication | Replication | Replication | Replication, Views |
-	|        |             | and Views   | and XDCR    | and XDCR           |
-	|--------|-------------|------------ |-------------|--------------------|
-	| 10,000 | 43/344      |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
-	| 11,000 |             |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
-	| 12,000 | 105/958     |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
-	| 13,000 | 3091/53790  |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
-	| 14,000 |             |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
-	| 15,000 | 21387/87032 |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
+	|--------|--------------|-------------|-------------|--------------------|
+	|Ops/Sec | Replication  | Replication | Replication | Replication, Views |
+	|        |              | and Views   | and XDCR    | and XDCR           |
+	|--------|--------------|-------------|-------------|--------------------|
+	| 11,000 |   181/1628   |  224/1316   |             |                    |
+	|--------|--------------|-------------|-------------|--------------------|
+	| 12,000 |  2096/62764  |  1855/40807 |             |                    |
+	|--------|--------------|-------------|-------------|--------------------|
+	| 13,000 |  14170/85159 | 14957/88260 |             |                    |
+	|--------|--------------|-------------|-------------|--------------------|
+	| 14,000 | 26816/100796 | 26566/97725|             |                    |
+	|--------|--------------|-------------|-------------|--------------------|
 
 	Replication Bytes/Sec in MB (Avg/Max/Min)
 
 	|--------|-------------|-------------|-------------|--------------------|
 	|Ops/Sec | Replication | Replication | Replication | Replication, Views |
 	|        |             | and Views   | and XDCR    | and XDCR           |
-	|--------|-------------|------------ |-------------|--------------------|
-	| 10,000 | 6.3/8/2.7   |             |             |                    |
 	|--------|-------------|-------------|-------------|--------------------|
-	| 11,000 |             |             |             |                    |
+	| 11,000 | 13.7/18.1/5 |  13.7/15/4  |             |                    |
 	|--------|-------------|-------------|-------------|--------------------|
-	| 12,000 | 7.5/8.4/2   |             |             |                    |
+	| 12,000 | 14.8/37.7/4 |  14.9/33/3  |             |                    |
 	|--------|-------------|-------------|-------------|--------------------|
-	| 13,000 | 7.3/25/0    |             |             |                    |
+	| 13,000 | 13.6/32.7/0 | 14.4/53.9/0 |             |                    |
 	|--------|-------------|-------------|-------------|--------------------|
-	| 14,000 |             |             |             |                    |
-	|--------|-------------|-------------|-------------|--------------------|
-	| 15,000 | 6.6/29/0    |             |             |                    |
+	| 14,000 | 13.7/51.3/0 | 13.7/36.8/0 |             |                    |
 	|--------|-------------|-------------|-------------|--------------------|
 
+
+	Replication Latency in Milliseconds (80th/95th/99th)
+
+	|--------|----------------|--------------|-------------|--------------------|
+	|Ops/Sec | Replication    | Replication  | Replication | Replication, Views |
+	|        |                | and Views    | and XDCR    | and XDCR           |
+	|--------|----------------|--------------|-------------|--------------------|
+	| 11,000 |  148/835/1031  | 150/834/1014 |             |                    |
+	|--------|----------------|--------------|-------------|--------------------|
+	| 12,000 |  156/937/5753  | 231/940/5801 |             |                    |
+	|--------|----------------|--------------|-------------|--------------------|
+	| 13,000 |  623/5378/7148 | 611/5688/7718|             |                    |
+	|--------|----------------|--------------|-------------|--------------------|
+	| 14,000 |  1975/6503/8794|2297/6628/8039|             |                    |
+	|--------|----------------|--------------|-------------|--------------------|
 
 Detailed Test Results:
 
 * [Replication Only](rep-only.md)
 * [Replication with Views](rep-views.md)
 * [Replication with XDCR](rep-xdcr.md)
-* [Replication with Viwes and XDCR](rep-views-xdcr.md)
+* [Replication with Views and XDCR](rep-views-xdcr.md)
+
+### Tests with external clients
+
+Tests with external clients were ran for 15 minutes each and items remaining in the replication queue (items remaining) as well as network utilization (bytes sent per second) were measured. The intent was to find the point at which items remaining to be replicated became large or varied highly in the presence of different number of external clients.
+
+	Replication Items Remaining (Avg/Max)
+
+	|--------|--------------|-------------|-------------|--------------|--------------|--------------|
+	|Ops/Sec | 1 Client     | 5 Clients   | 10 Clients  | 25 Clients   | 50 Clients   | 100 Clients  |
+	|--------|--------------|-------------|-------------|--------------|--------------|--------------|
+	| 11,000 |   444/28929  |  953/23822  |   
+	|--------|--------------|-------------|-------------|--------------|--------------|--------------|
+	| 12,000 |  1990/46684  | 3637/95067  | 
+	|--------|--------------|-------------|-------------|--------------|--------------|--------------|
+	| 13,000 |  5043/47999  | 6871/107210 | 
+	|--------|--------------|-------------|-------------|--------------|--------------|--------------|
+	| 14,000 | 20961/83365  | 14668/152165| 
+	|--------|--------------|-------------|-------------|--------------|--------------|--------------|
+
+	Replication Bytes/Sec in MB (Avg/Max/Min)
+
+	|--------|-------------|-------------|-------------|-------------|-------------|-------------|
+	|Ops/Sec | 1 Client    | 5 Clients   | 10 Clients  | 25 Clients  | 50 Clients  | 100 Clients |
+	|--------|-------------|-------------|-------------|-------------|-------------|-------------|
+	| 11,000 | 13.6/15/6   |  13.5/24.9/2| 
+	|--------|-------------|-------------|-------------|-------------|-------------|-------------|
+	| 12,000 | 13.7/29/0   | 14.2/26/2.5 | 
+	|--------|-------------|-------------|-------------|-------------|-------------|-------------|
+	| 13,000 | 15.9/34.4/1 | 14.9/29/0   | 
+	|--------|-------------|-------------|-------------|-------------|-------------|-------------|
+	| 14,000 | 14.4/32.3/0 | 13.8/32/0   | 
+	|--------|-------------|-------------|-------------|-------------|-------------|-------------|
+
+
+	Replication Latency in Milliseconds (80th/95th/99th)
+
+	|--------|----------------|--------------|--------------|-----------------|-----------------|-----------------|
+    |Ops/Sec | 1 Client       | 5 Clients    | 10 Clients   | 25 Clients      |  50 Clients     | 100 Clients     |
+	|--------|----------------|--------------|--------------|-----------------|-----------------|-----------------|
+	| 11,000 |  150/850/1068  | 160/780/1091 |
+	|--------|----------------|--------------|--------------|-----------------|-----------------|-----------------|
+	| 12,000 |  86/751/1119   | 167/853/1230 |
+	|--------|----------------|--------------|--------------|-----------------|-----------------|-----------------|
+	| 13,000 | 160/1145/6436  | 317/1172/6473|
+	|--------|----------------|--------------|--------------|-----------------|-----------------|-----------------|
+	| 14,000 | 855/5994/7723  | 569/4082/6875|
+	|--------|----------------|--------------|--------------|-----------------|-----------------|-----------------|
+
+* [Replication with 1 client](rep-1_client.md)
+* [Replication with 5 clients](rep-5_clients.md)
+* [Replication with 10 clients](rep-10_clients.md)
+* [Replication with 25 clients](rep-25_clients.md)
+* [Replication with 50 clients](rep-50_clients.md)
+* [Replication with 100 clients](rep-100_clients.md)
