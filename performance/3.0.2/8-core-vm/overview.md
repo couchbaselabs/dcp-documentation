@@ -89,7 +89,7 @@ Detailed Test Results:
 * [Replication Only](rep-only.md)
 * [Replication with Views](rep-views.md)
 * [Replication with XDCR](rep-xdcr.md)
-* [Replication with Viwes and XDCR](rep-views-xdcr.md)
+* [Replication with Views and XDCR](rep-views-xdcr.md)
 
 ### Tests with external clients
 
