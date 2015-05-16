@@ -96,11 +96,13 @@ Detailed Test Results:
 Tests with external clients were ran for 15 minutes each and items remaining in the replication queue (items remaining) as well as network utilization (bytes sent per second) were measured. The intent was to find the point at which items remaining to be replicated became large or varied highly in the presence of different number of external clients.
 
 	Replication Items Remaining (Avg/Max)
+    (NUM) indicates steady state avg
 
 	|--------|--------------|-------------|--------------|------------------|
 	|Ops/Sec | 1 Client     | 5 Clients   | 10 Clients   | 25 Clients       |
 	|--------|--------------|-------------|--------------|------------------|
 	| 6,000  |      NT      |     NT      |600242/4646132|12871390/28441768 |
+    |        |              |             | (391)        |                  |
 	|--------|--------------|-------------|--------------|------------------|
 	| 11,000 |   935/31168  |  1053/27052 |    NT        |     NT           |
 	|--------|--------------|-------------|--------------|------------------|
