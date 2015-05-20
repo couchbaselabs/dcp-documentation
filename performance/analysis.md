@@ -16,10 +16,10 @@
 ### Replication Latency
 Replication latency is measured as the time taken for an item update to appear at the replica node. This is sampled across a subset of items that are updated by the front end load. 80th, 95th, 99th percentiles of the latencies are captured. A latency within **0.5s for 95th percentile** and **1s for 99th percentile** is considered **good enough**.
         
-### Replication items queue size
+### Replication Items Queue Size
 Number of items in the replication queue. This is got by polling EP Engine stats which indicates the items that are yet to be replicated at that instance. The average size of the queue and the max observed queue sizes are captured. Spikes in the queue size indicated that replication is suffering (since our test case only has a steady load with no rebalance or failover). 
 
-### Rate of Replication bytes sent
+### Rate of Replication Bytes Sent
 Rate at which replication bytes are sent over the network is captured and is measured as bytes per second. This is got by polling EP Engine stats. Average, maximum and minimum of these sampled rates were captured. Fall in the replication rates, with instances of 0 bytes/sec is not considered good for replication.
 
 ##Conclusions
@@ -29,6 +29,8 @@ Rate at which replication bytes are sent over the network is captured and is mea
 * **Replication with views:** Replication latencies good until 11k load
 * **Replication with xdcr:** Replication latencies good until 8k load on 8core 8GB VM
 * **Replication with xdcr and views:** Replication latencies good until 6k load
+
+![11k-latency_raw-replication](images/replication_only/11k_latency_raw.png) ![13k-latency_raw-replication](images/replication_only/13k_latency_raw.png)
 
 In each scenario after a certain front end load, we see spikes in replication queue sizes and the replication latencies even though the CPU usage is not close to 100%. We suspect the reason for this is due to **increased memory usage due to backfill** in 3.0.2 and  the **backfill buffer becoming full** in sherlock. The backfill buffer is currently a fixed value irrespective of the bucket size and backfilling of items is suspended until the buffer is drained.
 
