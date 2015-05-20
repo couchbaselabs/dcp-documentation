@@ -31,9 +31,9 @@ Rate at which replication bytes are sent over the network is captured and is mea
 * **Replication with xdcr and views:** Replication latencies good until 6k load
 
 ![11k-latency_raw-replication](3.0.2/8-core-4gb-ram-vm/images/replication_only/11k_latency_raw.png)
-**Good replication latency**
+                                **Good replication latency**
 ![13k-latency_raw-replication](3.0.2/8-core-4gb-ram-vm/images/replication_only/13k_latency_raw.png)
-**High replication latency**
+                                **High replication latency**
 
 
 In each scenario after a certain front end load, we see spikes in replication queue sizes and the replication latencies even though the CPU usage is not close to 100%. We suspect the reason for this is due to **increased memory usage due to backfill** in 3.0.2 and  the **backfill buffer becoming full** in sherlock. The backfill buffer is currently a fixed value irrespective of the bucket size and backfilling of items is suspended until the buffer is drained.
