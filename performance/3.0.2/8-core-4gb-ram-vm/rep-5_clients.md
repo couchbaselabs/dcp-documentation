@@ -35,31 +35,3 @@
 ![12k-latency_perc-replication](images/replication_5_clients/12k_latency_perc.png)
 
 ![12k-cpu-replication](images/replication_5_clients/12k_cpu.png)
-
-###13,000 sets/sec
-
-![13k-ops-replication](images/replication_5_clients/13k_ops.png)
-
-![13k-items-replication](images/replication_5_clients/13k_items.png)
-
-![13k-bytes-replication](images/replication_5_clients/13k_bytes.png)
-
-![13k-latency_raw-replication](images/replication_5_clients/13k_latency_raw.png)
-
-![13k-latency_perc-replication](images/replication_5_clients/13k_latency_perc.png)
-
-![13k-cpu-replication](images/replication_5_clients/13k_cpu.png)
-
-###14,000 sets/sec
-
-![14k-ops-replication](images/replication_5_clients/14k_ops.png)
-
-![14k-items-replication](images/replication_5_clients/14k_items.png)
-
-![14k-bytes-replication](images/replication_5_clients/14k_bytes.png)
-
-![14k-latency_raw-replication](images/replication_5_clients/14k_latency_raw.png)
-
-![14k-latency_perc-replication](images/replication_5_clients/14k_latency_perc.png)
-
-![14k-cpu-replication](images/replication_5_clients/14k_cpu.png)
