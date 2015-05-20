@@ -30,11 +30,11 @@ Rate at which replication bytes are sent over the network is captured and is mea
 * **Replication with xdcr:** Replication latencies good until 8k load on 8core 8GB VM
 * **Replication with xdcr and views:** Replication latencies good until 6k load
 
-![11k-latency_raw-replication](3.0.2/8-core-4gb-ram-vm/images/replication_only/11k_latency_raw.png)
+![Good replication latency](3.0.2/8-core-4gb-ram-vm/images/replication_only/11k_latency_raw.png)
 
                                                   Good replication latency
 
-![13k-latency_raw-replication](3.0.2/8-core-4gb-ram-vm/images/replication_only/13k_latency_raw.png)
+![High replication latency](3.0.2/8-core-4gb-ram-vm/images/replication_only/13k_latency_raw.png)
 
                                                   High replication latency
 
@@ -49,8 +49,11 @@ Both Views and XDCR contribute to increased memory usage and also contend with t
 
 ###Effect of external clients
 * **Initial Replication Queue Size build-up:** In 3.0.2 backfilling is done directly onto memory. With the increase in the number of external clients **beyond 5 connections**, the memory used by backfills increase unboundedly. Hence the replication suffers initially until we reach a steady state. The time taken to reach the steady state increases with the increase in the number of connections. This problem is not seen in sherlock because we have a backfill buffer per connection and the memory usage by the backfills is bound by this.
+
+![Initial Replication Queue Size build-up](3.0.2/8-core-8gb-ram-vm-DGM/images/replication_10_clients/6k_items.png)
+
 * **Steady state:** When compared to the baseline replication only case, increase is seen in the replication latencies and replication queue sizes. This is due to increased CPU activity and reduced amount of scheduling of the replication thread.
-* **Effect on front end load:**
+* **Effect on front end load:** On 3.0.2 sometimes we observed that with more external clients the front end load does not build up. Again we attribute this to the unbounded memory usage of backfills.
 
 ###4 core vs 8 core
 * Results with 8 cores is better but similar behaviour characteristics
