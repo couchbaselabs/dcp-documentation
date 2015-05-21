@@ -16,7 +16,6 @@
 ##Performance Indicators
 ### Replication Latency
 Replication latency is measured as the time taken for an item update to appear at the replica node. This is sampled across a subset of items that are updated by the front end load. 80th, 95th, 99th percentiles of the latencies are captured. A latency within **0.5s for 95th percentile** and **1s for 99th percentile** is considered **good enough**.
-Label the document
 
 ### Replication Items Queue Size
 Number of items in the replication queue. This is got by polling EP Engine stats which indicates the items that are yet to be replicated at that instance. The average size of the queue and the max observed queue sizes are captured. Spikes in the queue size indicated that replication is suffering (since our test case only has a steady load with no rebalance or failover). 
@@ -35,7 +34,7 @@ After a certain front end load, we see spikes in replication queue sizes and the
 ![High replication latency](3.0.2/8-core-4gb-ram-vm/images/replication_only/13k_latency_raw.png)
                                             
 ## Backfill Consuming Large Memory
-In 3.0.2 backfilling is done directly onto memory. With the increase in the number of external clients **beyond 5 connections**, the memory used by backfills increase unboundedly. Hence the replication suffers initially until we reach a steady state. The time taken to reach the steady state increases with the increase in the number of connections. This problem is not seen in sherlock because we have a backfill buffer per DCP connection and the memory usage by the backfills is bound by this.
+In 3.0.2 backfilling is done directly onto memory. In every backfill, we read all the items, in that particular sequence range, from the disk onto the memory. For every DCP connection we do a bunch of backfills in the beginning. With the increase in the number of external clients (connections) **beyond 5**, the memory used by backfills increase unboundedly. Hence the replication suffers initially until we reach a steady state. The time taken to reach the steady state increases with the increase in the number of connections. This problem is not seen in sherlock because we have a backfill buffer per DCP connection and the memory usage by the backfills is bound by this.
 
                                       Replication with 10 clients 6k ops/sec
 ![Initial Replication Queue Size build-up](3.0.2/8-core-8gb-ram-vm-DGM/images/replication_10_clients/6k_items.png)
@@ -43,9 +42,9 @@ In 3.0.2 backfilling is done directly onto memory. With the increase in the numb
 On 3.0.2 sometimes we observed that with more external clients the front end load does not build up. Again we attribute this to the unbounded memory usage of backfills.
 
 ## Views and XDCR
-**View** is equivalent to an additional external connection. But, in general, this will cause more backfilling due to various snapshot requests.
+**View** is equivalent to an additional external connection. But, there will be continuous stream open and stream close operations. That is because a view will repeatedly open a stream, read latest items and then close the stream. This will cause continuous backfilling.
 
-**XDCR** is equivalent to 8 external connections in 3.0.2. Unlike replication, DCP streams open and close continuously in XDCR contributing to continuous backfilling requests.
+**XDCR** is equivalent to 8 external connections in 3.0.2. Unlike replication or external clients, DCP streams open and close continuously in XDCR contributing to continuous backfilling requests.
 
 Both Views and XDCR contribute to increased memory usage and also contend with the replication thread for the CPU, thereby increasing the replication latencies.
 
