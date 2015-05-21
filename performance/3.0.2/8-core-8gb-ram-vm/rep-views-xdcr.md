@@ -20,8 +20,6 @@
 
 ![6k-latency_perc-xdcr_views](images/xdcr_views/6k_latency_perc.png)
 
-![6k-xdcr-xdcr_views](images/xdcr_views/6k_xdcr.png)
-
 ![6k-cpu-xdcr_views](images/xdcr_views/6k_cpu.png)
 
 ###8,000 sets/sec
@@ -36,8 +34,6 @@
 
 ![8k-latency_perc-xdcr_views](images/xdcr_views/8k_latency_perc.png)
 
-![8k-xdcr-xdcr_views](images/xdcr_views/8k_xdcr.png)
-
 ![8k-cpu-xdcr_views](images/xdcr_views/8k_cpu.png)
 
 ###10,000 sets/sec
@@ -51,7 +47,5 @@
 ![10k-latency_raw-xdcr_views](images/xdcr_views/10k_latency_raw.png)
 
 ![10k-latency_perc-xdcr_views](images/xdcr_views/10k_latency_perc.png)
-
-![10k-xdcr-xdcr_views](images/xdcr_views/10k_xdcr.png)
 
 ![10k-cpu-xdcr_views](images/xdcr_views/10k_cpu.png)
