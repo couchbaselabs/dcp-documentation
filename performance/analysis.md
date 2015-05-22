@@ -46,7 +46,7 @@ On 3.0.2 sometimes we observed that with more external clients the front end loa
 **View** is equivalent to an additional external connection. But, there will be continuous stream open and stream close operations. That is because a view will repeatedly open a stream, read latest items and then close the stream. This will cause continuous backfilling.
 
                                       Replication with XDCR 11k ops/sec
-![Replication with XDCR](3.0.2/8-core-4gb-ram-vm/images/xdcr/10k_latency_raw.png)
+![Replication with XDCR](3.0.2/8-core-4gb-ram-vm/images/xdcr/11k_latency_raw.png)
 
 **XDCR** is equivalent to 16 external connections in 3.0.2. Unlike replication or external clients, DCP streams open and close continuously in XDCR contributing to continuous backfilling requests.
 
