@@ -83,7 +83,7 @@ We can characterize the behavior with external clients by considering it in 2 di
 
 
 ##Further Improvements
-### Variable flow control buffer size ******
+### Variable flow control buffer size
 Set flow control buffer size as a percentage of the bucket memory size. Flow control is used to avoid a slow DCP consumer being overrun by a fast DCP producer. DCP producer stops sending the data when the flow control buffer is full on the consumer side. Currently the flow control buffer is set to a constant value of 10MB irrespective of the bucket size. In future, we plan to make it a percentage of bucket memory.
 
 ### Connection Prioritization
