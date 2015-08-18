@@ -7,7 +7,7 @@ At a high level a rebalance simply consists of one or more VBucket movements whi
 
 ###Initial Stream Handshake
 
-The diagram below shows the three entities that take part in a rebalance. The Consumer represents the new VBucket that is being being created and this entity will be recieving data from the current active VBucket. The current active VBucket is represented in the diagram as the Producer and it will be the entity which sends all of its data to the consumer. The entity in the middle of the diagram is the EBucketMigrator (EBM) and it's part of the cluster manager. The EBucketMigrator is a proxy which simply monitors the Vbucket movement.
+The diagram below shows the three entities that take part in a rebalance. The Consumer represents the new VBucket that is being created and this entity will be recieving data from the current active VBucket. The current active VBucket is represented in the diagram as the Producer and it will be the entity which sends all of its data to the consumer. The entity in the middle of the diagram is the EBucketMigrator (EBM) and it's part of the cluster manager. The EBucketMigrator is a proxy which simply monitors the Vbucket movement.
 
 ![Figure 1](../images/vbucket_move_detailed_figure_1.jpg)
 
