@@ -47,6 +47,7 @@ The flags field is used to specify to the consumer why the stream was closed and
 * *Closed (0x01)* - This indicates that the close stream command was invoked on this stream causing it to be closed by force.
 * *State Changed (0x02)* - The state of the VBucket that is being streamed has changed to state that the consumer does not want to receive.
 * *Disconnected (0x03)* - The stream is closing because the connection is being disconnected.
+* *Too Slow (0x04)* - The stream is closing because the client cannot read from the stream fast enough. This is done to prevent the server from running out of resources trying while trying to serve the client. When the client is ready to read from the stream again it should reconnect. This flag is available starting in Couchbase 4.5.
 
 ###Returns
 
