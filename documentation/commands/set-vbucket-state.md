@@ -20,8 +20,8 @@ Extra looks like:
 State may have the following values:
 
 * Active (0x01) - Changes the VBucket on the consumer side to active state.
-* Pending (0x02) - Changes the VBucket on the consumer side to pending state.
-* Replica (0x03) - Changes the VBucket on the consumer side to replica state.
+* Replica (0x02) - Changes the VBucket on the consumer side to replica state.
+* Pending (0x03) - Changes the VBucket on the consumer side to pending state.
 * Dead (0x04) - Changes the VBucket on the consumer side to dead state.
 
 The client should not send a reply to this command. The following example shows the breakdown of the message:
