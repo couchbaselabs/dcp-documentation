@@ -69,3 +69,16 @@ Setting the buffer size for a stream to zero is a special case for flow control.
 ###Buffering Messages
 
 Only Mutation, Deletion, Expiration, Snapshot Markers, Set VBucket State, and Stream End messages should be buffered. All other messages should be processed immediately and should not be counted as taking up buffer space. This is important because DCP connections should always be able to process [No-op](commands/no-op.md) messages quickly. Other messages like [Control](commands/control.md) messages do not take up significant memory space and can be applied immediatley without having to take up buffer space.
+
+##Flow control policies in DCP Consumer (replica connection) on Couchbase Data Nodes
+There are 4 different types are of flow control policies that are supported by DCP consumers on couchbase data nodes. They are **(1) none (2) static (3) dynamic (4) aggressive**. One of these policies can be chosen by setting it in the configuration file.  The DCP consumers on couchbase data nodes are created for data replication from active to replica vbuckets.
+
+Below is the description of each of the 4 policies:
+###None:
+No flow control policy is adopted. Consumer will advertize the buffer size as 0 to the Producer.
+###Static
+In this policy all flow control buffer sizes are fixed to a particular value. This value is a configurable. By default it is 10MB.
+###Dynamic
+In this policy flow control buffer sizes are set only once during the connection set up. It is set as a percentage (default 1) of bucket mem quota and also within max (default 50MB) and a min value (default 10 MB). Once dynamic flow control buffer memory usage goes beyond a threshold (10% of bucket memory), all subsequent connections get a flow control buffer size of min value (default 10MB)
+###Aggressive
+In this policy flow control buffer sizes are always set as a percentage (default 5%) of bucket memory quota across all flow control buffers, but within max (default 50MB) and a min value (default 10 MB). Every time a new connection is made or a disconnect happens, flow control buffer size of all other connections is changed to share an aggregate percentage(default 5%) of bucket memory
