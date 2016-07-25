@@ -1,6 +1,7 @@
 #Buffer Acknowledgement (opcode 0x5d)
 
 Sent to by the Consumer to the Producer in order to inform the Producer that the Consumer has consumed some or all of the data the the Producer has sent and that the Consumer is ready for more data.
+Note: In the acknowledgement we account for both data bytes and message header bytes.
 
 The request:
 
@@ -46,7 +47,7 @@ The extras section will contain a 32-bit value which denotes the amount of bytes
     Magic        (0)    : 0x80                (Request)
     Opcode       (1)    : 0x5D                (Buffer Acknowledgement)
     Key length   (2,3)  : 0x0000              (0)
-    Extra length (4)    : 0x00                (0)
+    Extra length (4)    : 0x04                (0)
     Data type    (5)    : 0x00                (Field not used)
     VBucket      (6,7)  : 0x0000              (Field not used)
     Total body   (8-11) : 0x00000004          (4)
@@ -54,7 +55,7 @@ The extras section will contain a 32-bit value which denotes the amount of bytes
     CAS          (16-23): 0x0000000000000000  (Field not used)
 	Buffer Bytes (24-27): 0x00001000          (4096)
 
-    Buffer Acknowledgement Binary Response
+    Buffer Acknowledgement Binary Response (Currently unused, DCP consumers should not expect this)
 
     Byte/     0       |       1       |       2       |       3       |
        /              |               |               |               |
