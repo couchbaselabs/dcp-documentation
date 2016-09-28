@@ -114,7 +114,7 @@ If the command executes successful (see the status field), the following packet 
 
 ###Returns
 
-A failover log for the vbucket requested. The failover log will be in asending order of time meaning the oldest failover entry will be the first entry in the response and the newest entry will be the last entry in the response. On failure and error code is returned.
+A failover log for the vbucket requested. The failover log will be in descending order of time meaning the oldest failover entry will be the last entry in the response and the newest entry will be the first entry in the response. On failure and error code is returned.
 
 ###Errors
 
