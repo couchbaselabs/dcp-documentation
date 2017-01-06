@@ -45,7 +45,7 @@ When a VBucket UUID match is found then that means the producer and consumer hav
 Consumer **need not rollback** here as it has same history as producer and can simple resume from where it left off the last time.
 
 ####b. Partial history match
-	Leading consumer (SnapStartSeqno < upper)
+	c (SnapStartSeqno > upper)
 Here consumer has a snapshot that is not present in the producer. Hence the producer will ask the consumer to **partial rollback to upper**. The consumer has to rollback till that point and resend the stream request with its snapshot info at the rollback point (upper in this case). The producer then runs its rollback logic again to see if the consumer needs further rollback.
 
 ####c. Partial history match
