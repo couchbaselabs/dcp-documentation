@@ -75,6 +75,21 @@ The client should not send a reply to this command. The following example shows 
 
 This message will not return a response unless an error occurs.
 
+###Extended Attributes (XATTRs)
+
+If a Document has XATTRs and `DCP_OPEN_INCLUDE_XATTRS` was set as part
+of the [DCP_OPEN](open-connection.md) message, then the `DCP_MUTATION`
+message will include the XATTRs as part of the Value payload.
+
+The presence of XATTRs is indicated by setting the XATTR bit in the
+datatype field:
+
+    #define PROTOCOL_BINARY_DATATYPE_XATTR uint8_t(4)
+
+See
+[Document - Extended Attributes](https://github.com/couchbase/memcached/blob/master/docs/Document.md#xattr---extended-attributes)
+for details of the encoding scheme.
+
 ###Extended Meta Data Section
 The extended meta data section is used to send extra meta data for a particular deletion. This section is at the very end, after the value. Its length will be set in the nmeta field.
 * [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
