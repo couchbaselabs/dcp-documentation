@@ -21,7 +21,10 @@ Extra looks like:
 
 Flags are specified as a bitmask in network byte order with the following bits defined:
 
-     1 - Type: Producer (bit set) / Consumer (bit cleared).
+     0x1 - Type: Producer (bit set) / Consumer (bit cleared).
+     0x2 - Type: Notifier (bit set). Note: both bits 1 and 2 should NOT be set.
+     0x4 - Include XATTRs. Specifies that DCP_MUTATION and DCP_DELETION messages
+           should include any XATTRs associated with the Document.
 
 When setting the Producer or Consumer flag the sender is telling the server what type of connection will be created. For example, if the Producer type is set then the sender of the Open Connection message will be a Consumer.
 
