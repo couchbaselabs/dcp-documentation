@@ -1,8 +1,8 @@
-###Extended meta data section v4.0
+### Extended meta data section v4.0
 
 The extended meta data section will be used to send extra meta data for each mutation, deletion or expiration. This section comes at the very end of the message right after the value section. The nmeta field in the packet will contain the length of this field.
 
-####Version 1 (0x01)
+#### Version 1 (0x01)
 
 In this version, the extended meta data section will have the following format:
 
@@ -19,7 +19,7 @@ Here:
 * 0x01 - adjusted time
 * 0x02 - conflict resolution mode
 
-####Operation
+#### Operation
 
 * For the extended meta data to be carried in a message (mutation/deletion/expiration), a control message will need to be sent for key "enable_ext_metadata" by the consumer to the producer after making the connection.
 * The value for enable_ext_metadata needs to be set to true.

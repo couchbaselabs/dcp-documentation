@@ -1,4 +1,4 @@
-###Deletion (0x58)
+### Deletion (0x58)
 
 Tells the consumer that the message contains a key deletion.
 
@@ -71,11 +71,11 @@ The client should not send a reply to this command. The following example shows 
       nmeta      (40-41): 0x0000
     Key          (42-46): hello
 
-###Returns
+### Returns
 
 This message will not return a response unless an error occurs.
 
-###Extended Attributes (XATTRs)
+### Extended Attributes (XATTRs)
 
 If a Document has XATTRs and `DCP_OPEN_INCLUDE_XATTRS` was set as part
 of the [DCP_OPEN](open-connection.md) message, then the `DCP_MUTATION`
@@ -90,11 +90,11 @@ See
 [Document - Extended Attributes](https://github.com/couchbase/memcached/blob/master/docs/Document.md#xattr---extended-attributes)
 for details of the encoding scheme.
 
-###Extended Meta Data Section
+### Extended Meta Data Section
 The extended meta data section is used to send extra meta data for a particular deletion. This section is at the very end, after the value. Its length will be set in the nmeta field.
 * [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

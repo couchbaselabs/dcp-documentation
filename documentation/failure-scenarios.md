@@ -1,4 +1,4 @@
-##Failure Scenarios
+## Failure Scenarios
 
 Failure scenarios are handled through the use of failover logs which are kept for all VBuckets no matter what state the VBucket might be in. A failover log consists of one or more entries and each entry contains a VBUcket UUID/High Seqno pair. Below is an example of a failover log.
 
@@ -8,7 +8,7 @@ Failure scenarios are handled through the use of failover logs which are kept fo
 
 In this document we will represent the VBucket UUID as a letter, but in practice the VBucket UUID will be represented as a random 64-bit value. The VBucket UUID can best be thought of as identifying a history of mutations. Every time the writer of the history changes we need to create a new failover log entry. We consider a change in history to occur whenever a VBucket changes it's state to active or whenever a node recovers from an unclean shutdown. When this happens an entry is created by generating a random VBucket UUID and associating it with the highest squence number contained in the VBucket.
 
-####Failover Log Behavior
+#### Failover Log Behavior
 
 In this section we will demonstrate how a failover log is used to deal with failure scenarios. Figure 1 shows the initial state of the cluster for this example failover scenario.
 
@@ -38,7 +38,7 @@ Since Node B and Node C each have items for history W Node B will need to rollba
 
 ![Figure 5](../images/upr_failover_log_5.jpg)
 
-####Failover Log (Handshake)
+#### Failover Log (Handshake)
 
 In typcal cases it is recommended that a DCP consumer just sends the latest VBucket UUID/High Seqno pair that they have in order to connect to a producer. The failover log will always be included in the OK response that is returned from the Stream Request command. This failover log should be persisted immediately after receiving the OK response. For more information on how this workflow takes place see the [UPR Session](upr-session.md) document.
 

@@ -1,11 +1,11 @@
 
-#Rebalance
+# Rebalance
 
 A rebalance takes place in a cluster after a node is added or removed and the cluster manager needs to shift data around the cluster so that every node has roughly the same amount of data to manage. Couchbase divides its data into 1024 paritions called VBuckets. When a rebalance takes place the cluster manager will generate a map of where each VBucket should reside and then moves each VBucket to the appropriate node. Once all VBuckets have been moved to their target nodes the rebalance is complete.
 
 At a high level a rebalance simply consists of one or more VBucket movements which take place in order enusure the data managed on each node is roughly the same. As a result this document will describe in detail the steps that take place to move a single VBucket from one node to another using the DCP protocol. A VBucket move consists of an initial connection handshake, adding/removing VBucket Streams, getting the new VBucket up to date with respect to the old VBucket, and the actual VBucket takeover. Each of these phases will be detailed in the sections below.
 
-###Initial Stream Handshake
+### Initial Stream Handshake
 
 The diagram below shows the three entities that take part in a rebalance. The Consumer represents the new VBucket that is being created and this entity will be recieving data from the current active VBucket. The current active VBucket is represented in the diagram as the Producer and it will be the entity which sends all of its data to the consumer. The entity in the middle of the diagram is the EBucketMigrator (EBM) and it's part of the cluster manager. The EBucketMigrator is a proxy which simply monitors the Vbucket movement.
 
@@ -37,7 +37,7 @@ Below is the set of steps that take place when initializing the VBucket movement
 
 8. The Producer will now begin to send its data to the Consumer.
 
-###Moving Data
+### Moving Data
 
 **TODO (Mike)** - Work with Alk to ensure this section is correct
 
@@ -53,7 +53,7 @@ In order to determine when the new VBucket is up to date with respect to the cur
 
 4. The Cluster Manager will next poll the indexer on the node containing the new VBucket until two requirements are met. First the indexer must have  indexed a sequence number that is greater than or equal to the last sequence number indexed on the old VBucket. Second, the VBucket UUID from the old VBucket must match the VBucket UUID on the indexer to ensure that indexer contains the proper mutation history.
 
-###VBucket Takeover
+### VBucket Takeover
 
 **TODO (Mike)** - Improve clarity of this section and work with Alk to make sure it is correct.
 
@@ -64,13 +64,13 @@ VBucket takeover is the final step of a VBucket move and it involves switching t
 To initiate a VBucket Takeover the EBucketMigrator will send an [Add Stream](commands/add-stream.md) command to the memcached front end with the Takeover flag set. This message will contain the vbucket that should be taken over and will return immediately to indicate either success or failure. The VBucket stream must also already exist in order for the takeover message to succeed.
 During the takeover phase the EBucketMigrator process will need to watch for [Set VBucket State](set-vbucket-state.md) messages which will be sent twice during the takeover process. When the takeover begins the producer will record its high sequence number and send all of the messages it has up to that sequence number. After this the first state change message is sent to the consumer and should change the state of the VBucket on the consumer side from replica to pending state. The producer then sets its VBucket to dead state and sends all of the remaining messages to the consumer. Once all messages are sent the producer sends a second state change message which changes the VBucket on the consumer side to active state. This will be the last message sent by the producer and the EBucketMigrator process needs to make sure that this message is received and executed by the consumer. After the last [Set VBucket State](set-vbucket-state.md) message is sent then the EBucketMigrator must check the states of the buckets on both sides of the connection. If the VBucket states do not match what the EBucketMigrator expects then the EBucketMigrator must change the states back to their original states (before the takeover) and start the takeover process again.
 
-###Closing Streams
+### Closing Streams
 
 Under certain circumstances the Cluster Manager might need to stop some streams pre-maturely. This can happen if the rebalance is stopped before it completes and will also happen if the Cluster Manager needs to stop any currently running replications. This section details the best practices for closing replication streams.
 
 To close a VBucket Stream the EBucketMigrator will send a [Close Stream](commands/close-stream.md) message containing the VBucket ID of the stream to both sides of the connection. This means one [Close Stream](commands/close-stream.md) message is sent to the Consumer and another [Close Stream](commands/close-stream.md) is sent to the Producer. The Consumer will immediately close it’s connection and refuse to process any other message that may already be on the wire for that stream. The Producer will place an [Stream End](commands/stream-end.md) message into it’s send queue and mark the connection dead. All [Close Stream](commands/close-stream.md) messages will return responses to the EBucketMigrator immediately and the response can be mapped to the request by using the opaque field.
 
-###Example VBucket Move
+### Example VBucket Move
 
 **TODO (Mike)** - Improve clarity of this section.
 

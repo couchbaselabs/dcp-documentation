@@ -1,4 +1,4 @@
-###Snapshot Marker (opcode 0x56)
+### Snapshot Marker (opcode 0x56)
 
 Sent by the producer to tell the consumer that a new snapshot is being sent. A snaphot is simply a series of commands that is guarenteed to contain a unique set of keys.
 
@@ -59,11 +59,11 @@ Snapshot Type is defined as:
 * 0x08 (ack) - Specifies that this snapshot marker should return a response once the entire snapshot is received.
 
 
-###Returns
+### Returns
 
 This message will not return a response unless an error occurs or the ack flag is set.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

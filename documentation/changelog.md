@@ -1,20 +1,20 @@
-#Change Log
+# Change Log
 
 The purpose of this document is to track major changes that have taken place within DCP on a per release basis.
 
-##3.0
+## 3.0
 
 The 3.0 release was the first release to feature DCP in Couchbase. This release contained support for the entire DCP protocol and supported intra-cluster replication, view engine indexing, cross-datacenter replication, and the incremental backup tool.
 
-##3.0.1
+## 3.0.1
 
 This was a minor bug fix release and contained no major DCP changes.
 
-##3.0.2 (Unreleased)
+## 3.0.2 (Unreleased)
 
 This was a minor bug fix release and contained no major DCP changes.
 
-##3.1.0 (Unreleased)
+## 3.1.0 (Unreleased)
 
 **Parallel Backfills**
 

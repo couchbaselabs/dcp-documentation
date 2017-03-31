@@ -1,5 +1,5 @@
 
-#Upgrade (2.x to 3.x)
+# Upgrade (2.x to 3.x)
 
 Couchbase 3.x contains both the TAP and DCP protocols. As a result the cluster manager can choose to use either of the protocols for replication. In order to make things as simple as possible when upgrading the cluster manager only uses the TAP protocol when in a mixed cluster scenario (eg. during the upgrade). Once all nodes are running Couchbase 3.x the cluster manager will start closing TAP streams and replacing those closed streams with DCP streams. The cluster manager will continue to do this until the entire cluster is using the DCP protocol for replication.
 

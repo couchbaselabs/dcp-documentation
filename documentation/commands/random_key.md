@@ -1,9 +1,9 @@
 
-##Random Key
+## Random Key
 
 The random key command is used to get a single random key from the cache. It is an internal API and is used by the cluster manager in order to help users visualize what there keys look like when writing view code.
 
-####Binary Implementation
+#### Binary Implementation
 
     Random Key Binary Request
 
@@ -74,11 +74,11 @@ The random key command is used to get a single random key from the cache. It is 
     CAS          (16-23): 0x0000000000000000  (field not used)
 	Key          (24-31): "rand_key"
 
-#####Returns
+##### Returns
 
 A random key and value
 
-#####Errors
+##### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 
@@ -88,7 +88,7 @@ If the server doesn't contain any keys.
 
 If data in this packet is malformed or incomplete then this error is returned. This error is also returned if the stream name specified in the packet does not exist.
 
-#####Use Cases
+##### Use Cases
 
 Used to get a random key and value in order to help inspect the data format contained in the server.
 

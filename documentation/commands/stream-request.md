@@ -1,4 +1,4 @@
-###Stream Request (opcode 0x53)
+### Stream Request (opcode 0x53)
 
 Sent by the consumer side to the producer specifying that the consumer wants to create a vbucket stream. In order to initial a stream for a vbucket the consumer must send the following command below. In order to initiate multiple stream the consumer needs to send multiple commands. The value specified in opaque in the stream request packet will be used as opaque field in all commands sent for the stream.
 
@@ -271,11 +271,11 @@ The following example tries to initiate a stream for vbucket 0 that continues fr
       vb UUID    (72-79): 0x00000000deadbeef
       vb seqno   (80-87): 0x0000000000006524
 
-###Returns
+### Returns
 
 A status code indicating whether or not the operation was successful.
 
-###Error codes
+### Error codes
 
 **PROTOCOL_BINARY_RESPONSE_KEY_EEXISTS (0x02)**
 

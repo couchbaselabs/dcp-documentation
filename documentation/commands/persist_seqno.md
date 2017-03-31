@@ -1,9 +1,9 @@
 
-##Persist Sequence Number
+## Persist Sequence Number
 
 The Persist Sequence Number command can be used to figure out when an item with a specific Sequence Number/VBucket UUID pair for a given VBucket is persisted into Couchbase.
 
-####Binary Implementation
+#### Binary Implementation
 
     Persist Sequence Number Binary Request
 
@@ -79,17 +79,17 @@ The Persist Sequence Number command can be used to figure out when an item with 
     Opaque       (12-15): 0x00000000
     CAS          (16-23): 0x0000000000000000  (Field not used)
 
-#####Extra Fields
+##### Extra Fields
 
 **Seqno**
 
 Each item in Couchbase is assigned a monotinically increasing Sequence Number. This field should contain the sequence number of the item you want to have persisted. Note that all items with a sequence number below this one will be persisted as well.
 
-#####Returns
+##### Returns
 
 A status code indicating whether or not the operation was successful
 
-#####Errors
+##### Errors
 
 **PROTOCOL_BINARY_RESPONSE_EINVAL (0x04)**
 
@@ -103,7 +103,7 @@ If the consumer does not have the given VBucket then this error is returned.
 
 If the operation does not complete within a certain amount of time this error code indicates a timeout.
 
-#####Use Cases
+##### Use Cases
 
 The Persist Sequence Number command can be used in order to make sure that all up to a specified sequence number have been persisted to disk. This is useful when doing a rebalance ince before moving to the next VBucket we need to make sure that all items have been durable replicated to another node.
 

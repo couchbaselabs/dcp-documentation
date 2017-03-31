@@ -1,8 +1,8 @@
-#No-Op (opcode 0x5c)
+# No-Op (opcode 0x5c)
 
 A No-Op message is sent by the Producer to the Consumer if the Producer has not sent any messages for a given interval of time. This interval is referred to as the *"noop interval"*. Upon receiving this message the Consumer is expected to respond with a No-Op response. When the Producer sends the No-Op it starts a timer and expects to see a No-Op response from the Consumer in a period equal to the *"noop interval"*. If no response is seen during this period then the Producer will disconnect. The Consumer should similarly expect to see some sort of message or a No-Op message in a period equal to twice the *"noop interval"* otherwise it should close its connection. See the page on [Dead Connection Detection](../dead-connections.md) for more details.
 
-####Binary Implementation
+#### Binary Implementation
 
     Dcp No-Op Binary Request
 
@@ -70,11 +70,11 @@ A No-Op message is sent by the Producer to the Consumer if the Producer has not 
     Opaque       (12-15): 0x00000005          (5)
     CAS          (16-23): 0x0000000000000000  (field not used)
 
-###Returns
+### Returns
 
 Whether or not the operation has succeeded
 
-###Errors
+### Errors
 
 **(Disconnect)**
 

@@ -1,4 +1,4 @@
-#Open Connection (opcode 0x50)
+# Open Connection (opcode 0x50)
 
 Sent by an external entity to a producer or a consumer to create a logical channel.
 
@@ -115,11 +115,11 @@ Upon success, the following message is returned.
 
 **Note:** If the name given in the open connection command is already being used by another established connection then the established connection will be closed and the new connection will be created successfully.
 
-###Returns
+### Returns
 
 A status code indicating whether or not the operation was successful.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_EINVAL (0x04)**
 

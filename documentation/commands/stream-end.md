@@ -1,4 +1,4 @@
-###Stream End (opcode 0x55)
+### Stream End (opcode 0x55)
 
 Sent to the consumer to indicate that the producer has no more messages to stream for the specified vbucket.
 
@@ -49,11 +49,11 @@ The flags field is used to specify to the consumer why the stream was closed and
 * *Disconnected (0x03)* - The stream is closing because the connection is being disconnected.
 * *Too Slow (0x04)* - The stream is closing because the client cannot read from the stream fast enough. This is done to prevent the server from running out of resources trying while trying to serve the client. When the client is ready to read from the stream again it should reconnect. This flag is available starting in Couchbase 4.5.
 
-###Returns
+### Returns
 
 A status code indicating whether or not the operation was successful.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

@@ -1,4 +1,4 @@
-###Set VBucket State (0x5b)
+### Set VBucket State (0x5b)
 
 The Set VBucket message is used during the VBucket takeover process to hand off ownership of a VBucket between two nodes. The message format as well as the state values for this operation is below.
 
@@ -58,11 +58,11 @@ The client should not send a reply to this command. The following example shows 
     CAS          (16-23): 0x0000000000000000
       state      (24)   : 0x4 (dead)
 
-###Returns
+### Returns
 
 Returns success if the vbucket state is successfully changed or returns an error on failure.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 
