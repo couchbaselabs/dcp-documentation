@@ -1,4 +1,4 @@
-#Buffer Acknowledgement (opcode 0x5d)
+# Buffer Acknowledgement (opcode 0x5d)
 
 Sent to by the Consumer to the Producer in order to inform the Producer that the Consumer has consumed some or all of the data the the Producer has sent and that the Consumer is ready for more data.
 Note: In the acknowledgement we account for both data bytes and message header bytes.
@@ -18,7 +18,7 @@ Extra looks like:
 
 The extras section will contain a 32-bit value which denotes the amount of bytes that the Consumer has processed and indicates to the Producer that the Consumer is capable of receiving more data.
 
-####Binary Implementation
+#### Binary Implementation
 
     Buffer Acknowledgement Binary Request
 
@@ -87,11 +87,11 @@ The extras section will contain a 32-bit value which denotes the amount of bytes
     Opaque       (12-15): 0x00000005          (5)
     CAS          (16-23): 0x0000000000000000  (field not used)
 
-#####Returns
+##### Returns
 
 Whether or not the operation has succeeded
 
-#####Errors
+##### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

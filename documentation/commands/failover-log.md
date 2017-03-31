@@ -1,4 +1,4 @@
-###Failover Log Request (opcode 0x54)
+### Failover Log Request (opcode 0x54)
 
 The Failover log request is used by the consumer to request all known failover ids a client may use to continue from. A failover id consists of the vbucket UUID and a sequence number. If a client can't find a known failover id, it should select the vbucket with the highest sequence number since that is the stream with the shortest path to completion.
 
@@ -112,11 +112,11 @@ If the command executes successful (see the status field), the following packet 
       vb UUID    (72-79): 0x00000000deadbeef
       vb seqno   (80-87): 0x0000000000006524
 
-###Returns
+### Returns
 
 A failover log for the vbucket requested. The failover log will be in descending order of time meaning the oldest failover entry will be the last entry in the response and the newest entry will be the first entry in the response. On failure and error code is returned.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_EINVAL (0x04)**
 

@@ -1,4 +1,4 @@
-#Terminology
+# Terminology
 
 The purpose of this document is to provide definitions for common terms that are used throughout the DCP documentation.
 

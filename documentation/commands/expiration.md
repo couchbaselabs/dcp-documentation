@@ -1,4 +1,4 @@
-###Expiration (0x59)
+### Expiration (0x59)
 
 Tells the consumer that the message contains a key expiration.
 
@@ -71,15 +71,15 @@ The client should not send a reply to this command. The following example shows 
       nmeta      (40-41): 0x0000
     Key          (42-46): hello
 
-###Returns
+### Returns
 
 This message will not return a response unless an error occurs.
 
-###Extended Meta Data Section
+### Extended Meta Data Section
 The extended meta data section is used to send extra meta data for a particular expiration. This section is at the very end, after the value. Its length will be set in the nmeta field.
 * [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

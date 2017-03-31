@@ -1,8 +1,8 @@
-##Protocol Flow
+## Protocol Flow
 
 This document intends to describe an example of the protocol flow between a Consumer and a Producer. The sections below will provide a step-by-step walk through of the messages exchanged by the Consumer and Producer for the lifetime of a connection.
 
-#####Creating the Connection
+##### Creating the Connection
 
 Creating a connection consists of opening a TCP/IP socket between the Consumer and the Producer and sending an [Open Connection](commands/open-connection.md) message. This [Open Connection](commands/open-connection.md) message message signifies this connection is a DCP connection and also allows the sender to give the connection a name. Below is a diagram of the interaction between the Producer and Consumer that takes place to establish a DCP connection.
 
@@ -14,7 +14,7 @@ Creating a connection consists of opening a TCP/IP socket between the Consumer a
 
 Once a DCP connection is created the Consumer can configure the connection by sending [Control](commands/control.md) messages to the Producer. [Control](commands/control.md) messages can be used to do things like enable [dead connection detection](dead-connections.md) and [flow control](flow-control.md). Sending [Control](commands/control.md) is not required if the default connection settings are sufficient.
 
-#####Starting the Stream
+##### Starting the Stream
 
 Once a connection has been created the Consumer can to create one or more VBucket Streams in order to stream data from Couchbase. The diagram below describes how to create a VBucket stream once a connection exists.
 
@@ -36,7 +36,7 @@ Once a connection has been created the Consumer can to create one or more VBucke
 
 Starting VBucket Streams can be parallelized since the Consumer can start as many streams as it needs to. Consumers should not create a connection per VBucket Stream since this will cause heavy resource usage on the server since each connection uses a file descriptor.
 
-#####Reading the Stream
+##### Reading the Stream
 
 Once a stream is started the Consumer will begin receiving data. The figure below shows what messages the Consumer should expect to receive. Fully understanding this section requires understanding what a [snapshot]() is and why snapshots are significant.
 
@@ -54,6 +54,6 @@ Once a stream is started the Consumer will begin receiving data. The figure belo
 4. At some point however the VBucket stream will be finished and the Producer will send a [Stream End](commands/stream-end.md) message to signify the stream is finished. A stream may end for different reasons so it is important to check the status code in the [Stream End](commands/stream-end.md) message.
 
 
-#####Closing a Connection
+##### Closing a Connection
 
 When the Consumer wants to end a DCP connection it should simply close the socket. The Producer will see the connection going down and this will cause the Producer to remove any structures used for sending data to the Consumer.

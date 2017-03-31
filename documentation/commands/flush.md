@@ -1,4 +1,4 @@
-###Flush (0x5a) (Not Supported in 3.0)
+### Flush (0x5a) (Not Supported in 3.0)
 
 Tells the consumer to delete all of its data for a given vbucket.
 
@@ -37,11 +37,11 @@ The client should not send a reply to this command. The following example shows 
     Opaque       (12-15): 0xdeadbeef
     CAS          (16-23): 0x0000000000000000
 
-###Returns
+### Returns
 
 This message will not return a response unless an error occurs.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

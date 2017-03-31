@@ -1,4 +1,4 @@
-###Close Stream (opcode 0x52)
+### Close Stream (opcode 0x52)
 
 Sent to server controling an DCP stream to close the stream for a named vbucket as soon as possible.
 
@@ -41,11 +41,11 @@ If received on the consumer side the consumer will close the stream for the spec
 
 If received on the producer side the producer will send an end stream message to the consumer indicating that the stream was closed by force. The producer may still receive response messages from the consumer for this stream.
 
-###Returns
+### Returns
 
 A status code indicating whether or not the operation was successful.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_ENOENT (0x01)**
 

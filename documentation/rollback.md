@@ -1,4 +1,4 @@
-##Rollback
+## Rollback
 
 Rollback is necessary when a DCP consumer has a different history from a DCP producer.
 Rollback happens at the vbucket level. When a stream is created for a vbucket it is decided whether a consumer needs a rollback or not. The rollback point (the sequence number to which the consumer needs to rollback) is decided with the help of the [failover logs](failure-scenarios.md) which are kept for all VBuckets no matter what state the VBucket might be in. Essentially the Consumer removes all of its data after the rollback point.
@@ -19,40 +19,40 @@ When a "stream request" is made by a consumer, it contains snapStartSeqno, snapE
 
 						SnapStartSeqno <= StartSeqno <= SnapEndSeqno
 
-###Rollback logic on DCP Producer
+### Rollback logic on DCP Producer
 
 DCP producer uses the snapStartSeqno, snapEndSeqno, startSeqno, endSeqno and the latest vbucket_uuid in the consumer request and purge seqno and its own failover table to decide the rollback point. The producer **adjusts the SnapStartSeqno and SnapEndSeqno** to calculate the rollback point more effectively. If StartSeqno is equal to SnapEndSeqno, then the consumer has the entire snapshot and hence producer sets SnapStartSeqno to SnapEndSeqno in its rollback calculations. If StartSeqno is equal to SnapStartSeqno, then the consumer no items in the snapshot and hence producer sets SnapEndSeqno to SnapStartSeqno in its rollback calculations.
 
 Once the producer adjusts the SnapStartSeqno and SnapEndSeqno, the rollback logic can be explained in below cases.
 
-####1. Base Case
+#### 1. Base Case
 	StartSeqno == 0
 **Rollback is not necessary** as 0 is the smallest sequence number we have.
 
-####2. Wild Card 'Purge'
+#### 2. Wild Card 'Purge'
 	SnapStartSeqno < PurgeSeqno
 The consumer needs to **full rollback to 0**. This is necessary because for a consistent view the consumer should not miss out on any deleted (and subsequently purged items) on the producer.
 
-####3. Diverging History
+#### 3. Diverging History
 	Consumer VBucket UUID not found in producer's failover table
 Producer and consumer have no common histories. Hence **full rollback to 0**.
 
-####4. Partial/Full History
+#### 4. Partial/Full History
 Consumer VBucket UUID match found in producer's failover table
 When a VBucket UUID match is found then that means the producer and consumer have same history till the corresponding seqno associated with that uuid. The next point in the producer history is the next seqno in the producer's failover table if there is one, otherwise it is simply the high seqno on the producer. Let's denote this as **upper**.
-####a. Full history match
+#### a. Full history match
 	Lagging Consumer (SnapEndSeqno <= upper)
 Consumer **need not rollback** here as it has same history as producer and can simple resume from where it left off the last time.
 
-####b. Partial history match
+#### b. Partial history match
 	Leading consumer (SnapStartSeqno > upper)
 Here consumer has a snapshot that is not present in the producer. Hence the producer will ask the consumer to **partial rollback to upper**. The consumer has to rollback till that point and resend the stream request with its snapshot info at the rollback point (upper in this case). The producer then runs its rollback logic again to see if the consumer needs further rollback.
 
-####c. Partial history match
+#### c. Partial history match
 	Consumer Snapshot mismatch (SnapStartSeqno <= upper < SnapEndSeqno)
 This indicates that a consumer has a snapshot that is not present in the producer. Hence the consumer will have to **partial rollback to SnapStartSeqno** and post another stream request. Producer then will send items from SnapStartSeqno in a new snapshot.
 
-###Rollback logic on DCP Consumer
+### Rollback logic on DCP Consumer
 "Stream request" is made by a consumer which it contains snapStartSeqno, snapEndSeqno, startSeqno, endSeqno and the latest vbucket_uuid in its failover table.
 Data received by a DCP consumer is preceeded by a **snapshot marker**. It contains SnapStartSeqno and SnapEndSeqno for the data that is going to be received by the consumer in that snapshot. The consumer should store those values, so that in case of a partial rollback, it can resend the stream request with the appropriate SnapStartSeqno and SnapEndSeqno at the rollback point.
 

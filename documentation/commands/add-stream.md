@@ -1,4 +1,4 @@
-#Add Stream (opcode 0x51)
+# Add Stream (opcode 0x51)
 
 Sent to the consumer to tell the consumer to initiate a stream request with the producer.
 
@@ -96,11 +96,11 @@ opaque value used by messages passing for that vbucket. The vbucket
 identifier in the extra field is the vbucket identifier this response
 belongs to.
 
-###Returns
+### Returns
 
 On success a unique identifier is returned in the opaque field. This identifier can be used to differentitate two different streams that were accessing the same vbucket. On failure an error code will be returned.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_KEY_EEXISTS (0x02)**
 

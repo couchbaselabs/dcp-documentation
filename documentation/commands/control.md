@@ -1,4 +1,4 @@
-#Control (opcode 0x5E)
+# Control (opcode 0x5E)
 
 Sent by the Consumer to the Producer in order to configure connection settings.
 
@@ -94,11 +94,11 @@ The producer will respond immediately with a message indicating whether or not t
     Opaque       (12-15): 0x00000001
     CAS          (16-23): 0x0000000000000000
 
-###Returns
+### Returns
 
 A status code indicating whether or not the operation was successful.
 
-###Errors
+### Errors
 
 **PROTOCOL_BINARY_RESPONSE_EINVAL (0x04)**
 

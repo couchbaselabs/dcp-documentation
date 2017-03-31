@@ -1,5 +1,5 @@
 
-#Protocol Specification
+# Protocol Specification
 
 DCP utilizes the Memcached binary protocol as the basis for protocol definitions ([Memcached Binary Protocol Definitions](https://code.google.com/p/memcached/wiki/BinaryProtocolRevamped)) and defines a set opcodes for DCP commands.
 
@@ -7,7 +7,7 @@ A DCP connection differs from the standard Memcached connections because DCP con
 
 The typical scenario begins with the client requesting a stream. Upon success the server starts sending messages back to the client for mutations/deletions/expirations etc. While receiving messages the client can send additional commands to the server to start additional DCP streams, etc.
 
-###Protocol Definitions
+### Protocol Definitions
 
 * [**Open Connection**](commands/open-connection.md)
 * [**Add Stream**](commands/add-stream.md)
