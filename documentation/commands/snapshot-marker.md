@@ -1,6 +1,6 @@
 ### Snapshot Marker (opcode 0x56)
 
-Sent by the producer to tell the consumer that a new snapshot is being sent. A snaphot is simply a series of commands that is guarenteed to contain a unique set of keys.
+Sent by the producer to tell the consumer that a new snapshot is being sent. A snapshot is simply a series of commands that is guarenteed to contain a unique set of keys.
 
 The request:
 * Must have extras
