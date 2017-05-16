@@ -6,7 +6,7 @@ The request:
 
 * Must have an 8 byte extras section
 * Must have key
-* Must not have value
+* Can optionally have a value
 
 Extra looks like:
 
@@ -27,6 +27,10 @@ Flags are specified as a bitmask in network byte order with the following bits d
            should include any XATTRs associated with the Document.
      0x8 - (No Value) - Specifies that the server should stream only item key
            and metadata in the mutations and not stream the value of the item
+     0x10 - Collections - Specifies the client knows about collections, subsequent
+            DCP streams will send collection data. Additionally the client may
+            set a value in this request containing a JSON document that specifies
+            a collections filter.
 
 When setting the Producer or Consumer flag the sender is telling the server what type of connection will be created. For example, if the Producer type is set then the sender of the Open Connection message will be a Consumer.
 
@@ -114,6 +118,35 @@ Upon success, the following message is returned.
     CAS          (16-23): 0x0000000000000000
 
 **Note:** If the name given in the open connection command is already being used by another established connection then the established connection will be closed and the new connection will be created successfully.
+
+### Collections Filter
+
+If the user specifies 0x10 (collections) in the open flags the user can optionally encode a filter.
+
+#### Collections not enabled
+
+A client that doesn't enable collections will only receive mutations in the default collection. That is
+documents written by clients that don't enable collections (for example legacy clients written before Couchbase developed collections).
+
+#### Collections enabled and no filter specified (i.e. no value)
+
+The client receives "unfiltered" data, that is every mutation will be sent to the client.
+
+#### Collections enabled and a filter specified
+
+The value must encode a valid JSON document that specifies the filter information. For example if the bucket
+has 10 collections named collection_0 through to collection_10 and the client only wants mutations against
+collection_5 and collection_8 the following JSON filter data would be encoded.
+
+```
+{
+    "collections" : ["collection_5", "collection_8"]
+}
+```
+
+DCP streams that are created on a filtered DCP channel will have a lifetime of the filtered collections. For example if
+collection_5 and collection_8 were deleted, DCP streams would auto close when the last collection is deleted as there's no more data
+to send.
 
 ### Returns
 
