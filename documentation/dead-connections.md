@@ -8,6 +8,8 @@ Dead connection detection is turned off by default and must be enabled by the Co
 
 #### Handling a noop message
 
+Once a Consumer has made at least one successful [Stream Request](commands/stream-request.md), the Producer will start an internal timer equal to one noop interval. If no other message (e.g. Mutation) is sent by the Producer in that time, then it will instead send a Noop (and reset the interval timer).
+
 When the Consumer receives a noop message it should immediately respond with a noop response. The Producer will expect a response when it sends the Consumer this message and if no response is received the Producer will disconnect its connection. The Producer will wait for a response for an amount of time equal to the noop interval.
 
 #### Consumer dead connection detection
