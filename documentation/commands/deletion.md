@@ -19,11 +19,13 @@ Extra looks like:
       8| rev seqno                                                     |
        |                                                               |
        +---------------+---------------+---------------+---------------+
-     16| Metadata Size                 |
-       +---------------+---------------*
-       Total 18 bytes
+     16| Metadata Size                 | clen          |
+       +---------------+-------------------------------*
+       Total 19 bytes
 
 The metadata is located after the items key.
+
+Please see "Collections Enabled" for description of clen field.
 
 The client should not send a reply to this command. The following example shows the breakdown of the message:
 
@@ -51,9 +53,11 @@ The client should not send a reply to this command. The following example shows 
         +---------------+---------------+---------------+---------------+
       36| 0x00          | 0x00          | 0x00          | 0x01          |
         +---------------+---------------+---------------+---------------+
-      40| 0x00          | 0x00          | 0x68 ('h')    | 0x65 ('e')    |
+      40| 0x00          | 0x00          | 0x01          | 0x63 ('c')    |
         +---------------+---------------+---------------+---------------+
-      44| 0x6c ('l')    | 0x6c ('l')    | 0x6f ('o')    |
+      44| 0x3a (':')    | 0x3a (':')    | 0x68 ('h')    | 0x65 ('e')    |
+        +---------------+---------------+---------------+---------------+
+      48| 0x6c ('l')    | 0x6c ('l')    | 0x6f ('o')    |
         +---------------+---------------+---------------+
     DCP_DELETION command
     Field        (offset) (value)
@@ -69,7 +73,8 @@ The client should not send a reply to this command. The following example shows 
       by seqno   (24-31): 0x0000000000000005
       rev seqno  (32-39): 0x0000000000000001
       nmeta      (40-41): 0x0000
-    Key          (42-46): hello
+      clen       (42)   : 0x1
+    Key          (43-50): c::hello
 
 ### Returns
 
@@ -93,6 +98,23 @@ for details of the encoding scheme.
 ### Extended Meta Data Section
 The extended meta data section is used to send extra meta data for a particular deletion. This section is at the very end, after the value. Its length will be set in the nmeta field.
 * [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
+
+### Collections Enabled
+
+If the DCP channel is opened with collections enabled then all deletions sent
+will include 1 extra byte that encodes the collection length (shown as "clen" in the
+above encoding diagram). The collection length tells the client how many bytes of
+the key encode the collection name.
+
+The diagram above shows a key deleted in the "c" collection with a separator of
+"::", thus the key is "c::hello".
+
+If the deletion relates to a key in the default collection, then the collection
+length would be 0.
+
+If the DCP channel is not opened with collections enabled, then this data is not
+sent and we will encode a deletion packet which is compatible with legacy
+clients.
 
 ### Errors
 

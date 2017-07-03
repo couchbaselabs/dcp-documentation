@@ -25,13 +25,15 @@ Extra looks like:
        +---------------+---------------+---------------+---------------+
      24| lock_time                                                     |
        +---------------+---------------+---------------+---------------+
-     28| Metadata Size                 | NRU           |
-       +---------------+---------------+---------------+
-       Total 30 bytes
+     28| Metadata Size                 | NRU           | clen          |
+       +---------------+---------------+-------------------------------+
+       Total 31 bytes
 
-The metadata is located after the items value. The size for the value is therefore bodylen - key length - metadata size - 30 (size of extra).
+The metadata is located after the items value. The size for the value is therefore bodylen - key length - metadata size - 31 (size of extra).
 
 NRU is an internal field used by the server and may safely be ignored by other consumers.
+
+Please see "Collections Enabled" for description of clen field.
 
 
 The consumer should not send a reply to this command. The following example shows the breakdown of the message:
@@ -66,13 +68,15 @@ The consumer should not send a reply to this command. The following example show
         +---------------+---------------+---------------+---------------+
       48| 0x00          | 0x00          | 0x00          | 0x00          |
         +---------------+---------------+---------------+---------------+
-      52| 0x00          | 0x00          | 0x00          | 0x68 ('h')    |
+      52| 0x00          | 0x00          | 0x00          | 0x07          |
         +---------------+---------------+---------------+---------------+
-      56| 0x65 ('e')    | 0x6c ('l')    | 0x6c ('l')    | 0x6f ('o')    |
+      56| 0x63 ('c')    | 0x3a (':')    | 0x3a (':')    | 0x68 ('h')    |
         +---------------+---------------+---------------+---------------+
-      60| 0x77 ('w')    | 0x6f ('o')    | 0x72 ('r')    | 0x6c ('l')    |
+      60| 0x65 ('e')    | 0x6c ('l')    | 0x6c ('l')    | 0x6f ('o')    |
         +---------------+---------------+---------------+---------------+
-      64| 0x64 ('d')    |
+      64| 0x77 ('w')    | 0x6f ('o')    | 0x72 ('r')    | 0x6c ('l')    |
+        +---------------+---------------+---------------+---------------+
+      68| 0x64 ('d')    |
         +---------------+
     DCP_MUTATION command
     Field        (offset) (value)
@@ -92,8 +96,9 @@ The consumer should not send a reply to this command. The following example show
       lock time  (48-51): 0x00000000
       nmeta      (52-53): 0x0000
       nru        (54)   : 0x00
-    Key          (55-59): hello
-    Value        (60-64): world
+      clen       (55)   : 0x1
+    Key          (56-63): c::hello
+    Value        (64-68): world
 
 ### Returns
 
@@ -117,6 +122,23 @@ for details of the encoding scheme.
 ### Extended Meta Data Section
 The extended meta data section is used to send extra meta data for a particular mutation. This section is at the very end, after the value. Its length will be set in the nmeta field.
 * [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
+
+### Collections Enabled
+
+If the DCP channel is opened with collections enabled then all mutations sent
+will include 1 extra byte that encodes the collection length (shown as "clen" in the
+above encoding diagram). The collection length tells the client how many bytes of
+the key encode the collection name.
+
+The diagram above shows a key written to the "c" collection with a separator of
+"::", thus the key is "c::hello".
+
+If the mutation relates to a key in the default collection, then the collection
+length would be 0.
+
+If the DCP channel is not opened with collections enabled, then this data is not
+sent and we will encode a mutation packet which is compatible with legacy
+clients.
 
 ### Errors
 
