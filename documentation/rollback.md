@@ -26,12 +26,17 @@ DCP producer uses the snapStartSeqno, snapEndSeqno, startSeqno, endSeqno and the
 Once the producer adjusts the SnapStartSeqno and SnapEndSeqno, the rollback logic can be explained in below cases.
 
 #### 1. Base Case
-	StartSeqno == 0
-**Rollback is not necessary** as 0 is the smallest sequence number we have.
+#### a. Consumer has no history at seqno 0
+	StartSeqno == 0 and Consumer VBucket UUID == 0
+**Rollback is not necessary** as 0 is the smallest sequence number we have and the consumer has passed a uuid indicating that it is ok to receive items irrespective of the history @ seqno 0 in the producer failover table.
+
+#### b. Consumer has a history at seqno 0
+	StartSeqno == 0 and Consumer VBucket UUID != 0
+**Rollback is requested** even though 0 is the smallest sequence number we have. This is because a consumer might need to update its state correctly when it has a diverging history even though at seqno 0. We go through sections (3) and (4) below to determine if the consumer has a history mismatch with the producer or not. 
 
 #### 2. Wild Card 'Purge'
-	SnapStartSeqno < PurgeSeqno
-The consumer needs to **full rollback to 0**. This is necessary because for a consistent view the consumer should not miss out on any deleted (and subsequently purged items) on the producer.
+	SnapStartSeqno < PurgeSeqno and StartSeqno != 0
+The consumer needs to **full rollback to 0** (if the requested start seqno is not already 0). This is necessary because for a consistent view the consumer should not miss out on any deleted (and subsequently purged items) on the producer.
 
 #### 3. Diverging History
 	Consumer VBucket UUID not found in producer's failover table
