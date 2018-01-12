@@ -23,6 +23,8 @@ Valid Keys:
 
 * "supports_cursor_dropping" - Tells the server that the client can tolerate the server dropping the connection. The server will only do this if the client cannot read data from the stream fast enough and it is highly recommended to be used in all situations. We only support disabling cursor dropping for backwards compatibility. This parameter is available starting in Couchbase 4.5.
 
+* "send_stream_end_on_client_close_stream" - Tells the server (DCP Producer) that the client expects "STREAM_END" msg when the client initiates the stream close. That is, if the DCP client sends this control message during the connection set up, only then the producer sends the "STREAM_END" message for stream close initiated by the client. For all other causes of stream close, server by default sends the "STREAM_END" message when it closes the stream (say due to all items being streamed or due to an error condition). This is available only from Couchbase 5.5 and the older versions do not recognize the ctrl message and return error "EINVAL", thereby helping the clients to identify whether the server has this feature or not.
+
 The following example shows the breakdown of the message:
 
       Byte/     0       |       1       |       2       |       3       |
