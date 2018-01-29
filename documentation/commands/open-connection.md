@@ -31,6 +31,13 @@ Flags are specified as a bitmask in network byte order with the following bits d
             DCP streams will send collection data. Additionally the client may
             set a value in this request containing a JSON document that specifies
             a collections filter.
+     0x20 - Include Delete Times - The client wishes to receive extra metadata regarding
+            deletes. When a delete is persisted to disk, it is timestamped and purged
+            from the vbucket after some interval. When 'include delete times' is enabled,
+            deletes which are read from disk will have a timestamp value in the delete-time
+            field, in-memory deletes will have a 0 value in the delete-time field. See DCP
+            deletion command. Note when enabled on a consumer, the consumer expects the client
+            to send the delete-time format DCP delete.
 
 When setting the Producer or Consumer flag the sender is telling the server what type of connection will be created. For example, if the Producer type is set then the sender of the Open Connection message will be a Consumer.
 
