@@ -39,8 +39,14 @@ The layout of a message looks like:
 
 If received on the consumer side the consumer will close the stream for the specified vbucket imediately and let the producer know that the stream is closed as soon as it receives a message bound for that vbucket.
 
-If received on the producer side the producer will send an end stream message to the consumer indicating that the stream was closed by force. The producer may still receive response messages from the consumer for this stream.
+When received on the producer side:
 
+(a) The producers that have received [send_stream_end_on_client_close_stream](./control.md) control message on the connection once and have accepted that, will send [STREAM_END](./stream-end.md) message to the consumer indicating that the stream was closed by force. That is, the producer may still receive response messages from the consumer for this stream until it receives [STREAM_END](./stream-end.md) message.
+
+(b) The producers that have not received [send_stream_end_on_client_close_stream](./control.md) control message on the connection or the producers that have not accepted the control message (indicates the producer does not support sending [STREAM_END](./stream-end.md)), will stop sending messages to the consumer on this stream. The consumers should not expect any [STREAM_END](./stream-end.md) message.
+
+Note: In case (b), there may be some lingering messages for the stream on the connection, that were sent before the producer saw close stream command and may reach the consumer after it receives the response to close stream. So it is advisable to use the [send_stream_end_on_client_close_stream](./control.md) control message and hence operate under case (a) on the producers that support it.
+ 
 ### Returns
 
 A status code indicating whether or not the operation was successful.
