@@ -17,3 +17,25 @@ Some applications can only make decisions about the data they receive if they ha
 ### Performance
 
 DCP provides high throughput and low latency by keeping all of the most recent data that needs to be replicated in memory. This means that most DCP connection will never have to read data off of disk.
+
+### Snapshots
+
+In the most basic sense, a snapshot (a full snapshot) is an immutable view of the KV store at an instance. This is also a consistent view of the KV store at that instance.
+
+In Couchbase server, snapshot is an immutable copy of the key-value pairs in a vbucket (partition), received in a duration of time. That duration of time is marked by a 'start sequence number' and an 'end sequence number'. Successive snapshots give a consistent view of the vbucket upto a particular point, that is, till the 'end sequence number' of the last snapshot. Snapshots provide restartability when streaming items to replicas or other DCP clients. Snapshots also deduplicate muliple versions of the key by keeping only the latest value of the key.
+
+There are two types of snapshots that are formed when streaming items from the Couchbase vbuckets. When a client connects to the source, it initially gets a 'disk snapshot', and later when the client catches up with the source and hence has reached the steady state, it starts getting 'point-in-time' snapshots from memory.
+
+#### Disk Snapshots
+Disk snapshots are immutable persistent snapshots on the disk. They are formed after a batch of items are written onto disk. These snapshots persist on the disk until multiple such snapshots are compacted into a single snapshot. The replication clients then pick up these immutable snapshots and hence get a view of the vbucket that is consistent with the source vbucket. This is called as disk backill. When a disk backfill starts, all the snapshots are logically merged as and sent over as a single snapshot to the client. For example, say the disk has 3 snapshots snp1 from 1 to 20, snp2 from 21 to 30 and snp3 from 31 to 60. A backfill request will merge all 3 snapshots and send over a single logical snapshot from 1 to 60. Any request from the middle of the snapshot is also, that if the request is from 15, then the snapshot sent over is 15 to 60. Note that, to get a consistent view of the vbucket, the client should read till the end of the snapshot as some of the keys might have been de-duplicated.
+
+A draw back of the disk snapshots is that the keys cannot be replicated until the snapshot is formed. They are good when the snapshots are fairly large, that is when replication clients picks up batch of items and when they are fine with the higher latency in being synced with the source.
+
+#### Point-in-time snapshots (in-memory snapshots)
+Point-in-time snapshots are the snapshots that are created on the fly. That is, the source vbucket creates the snapshot only at the time when a replication client requests data. In Couchbase server, point-in-time snapshots are in-memory snapshots created by the checkpoint manager. They are best suited for steady state replication of items from memory. Steady state means all replication clients have almost caught with the source vbucket.
+
+Say the source vbucket has items from sequence number 0 to 100 and a replication client R1 makes a request for the copy of data. Items from sequence number 0 to 100 are sent as a snapshot (point-in-time snapshot) to R1 and a cursor C1 that corresponds to the client R1 is marked on the checkpoint manager. At a later time, say 20 more items are appended and hence the highest sequence number is 120. If another client R2 requests for data, items from sequence number 0 to 120 are sent as a snapshot to R2 and a cursor C2 that corresponds to the client R2 is marked on the checkpoint manager. When more data is appended to the vbucket, say until sequence number of 150, the client R1 can get upto 150 in a successive point-in-time snapshot from 101 to 150 and the client R2 in a successive point-in-time snapshot from 121 to 150. Note that cursors C1 and C2 are important to start over quickly from where the clients R1 and R2 had left before. As the cursors move, the key-value pairs with sequence number less than the sequence number where any cursor is marked can be removed from memory.
+
+Point-in-time snapshots are good for steady state replication as the replication clients can get their own snapshots that are created on demand and hence avoiding any wait for a snapshot to be created, thereby catching up with the source very fast with the latest key-value pairs shipped over as soon as possible.
+
+Slow clients and lagging (deferred) clients do not work well with point-in-time snapshots. As we cannot eject from checkpoint manager (memory) the items with sequence number less than the sequence number of the cursor with the least sequence number, the slow clients can increase the memory usage.
