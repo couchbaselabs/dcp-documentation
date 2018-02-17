@@ -1,6 +1,6 @@
 # Concepts
 
-DCP is build on four major architectural concepts that allow the protocol to be used to build a rich set of applications. Below are the major concepts.
+DCP is built on four major architectural concepts that allow the protocol to be used to build a rich set of applications. Below are the major concepts.
 
 ### Order
 
@@ -18,7 +18,9 @@ Some applications can only make decisions about the data they receive if they ha
 
 DCP provides high throughput and low latency by keeping all of the most recent data that needs to be replicated in memory. This means that most DCP connection will never have to read data off of disk.
 
-### Snapshots
+## Snapshots
+
+Snapshots are very critical to achieve the above 4 architectural foundations of DCP.
 
 In the most basic sense, a snapshot (a full snapshot) is an immutable view of the KV store at an instance. This is also a consistent view of the KV store at that instance.
 
@@ -26,12 +28,12 @@ In Couchbase server, snapshot is an immutable copy of the key-value pairs in a v
 
 There are two types of snapshots that are formed when streaming items from the Couchbase vbuckets. When a client connects to the source, it initially gets a 'disk snapshot', and later when the client catches up with the source and hence has reached the steady state, it starts getting 'point-in-time' snapshots from memory.
 
-#### Disk Snapshots
+### Disk Snapshots
 Disk snapshots are immutable persistent snapshots on the disk. They are formed after a batch of items are written onto disk. These snapshots persist on the disk until multiple such snapshots are compacted into a single snapshot. The replication clients then pick up these immutable snapshots and hence get a view of the vbucket that is consistent with the source vbucket. This is called as disk backill. When a disk backfill starts, all the snapshots are logically merged as and sent over as a single snapshot to the client. For example, say the disk has 3 snapshots snp1 from 1 to 20, snp2 from 21 to 30 and snp3 from 31 to 60. A backfill request will merge all 3 snapshots and send over a single logical snapshot from 1 to 60. And for request from the middle of the snapshot, that if the request is from sequence number 15, then the logical snapshot sent over is 15 to 60. Note that, to get a consistent view of the vbucket, the client should read till the end of the snapshot as some of the keys might have been de-duplicated.
 
 A drawback of the disk snapshots is that the keys cannot be replicated until the snapshot is formed. They are good when the snapshots are fairly large, that is when replication clients picks up batch of items and when they are fine with the higher latency in being synced with the source.
 
-#### Point-in-time snapshots (in-memory snapshots)
+### Point-in-time snapshots (in-memory snapshots)
 Point-in-time snapshots are the snapshots that are created on the fly. That is, the source vbucket creates the snapshot only at the time when a replication client requests data. In Couchbase server, point-in-time snapshots are in-memory snapshots created by the checkpoint manager. They are best suited for steady state replication of items from memory. Steady state means all replication clients have almost caught with the source vbucket.
 
 Below is an example how point-in-time snapshots give consistent view of the vbucket across multiple clients:
@@ -50,7 +52,7 @@ Point-in-time snapshots are good for steady state replication as the replication
 
 Slow clients and lagging (deferred) clients do not work well with point-in-time snapshots. As we cannot eject from checkpoint manager (memory) the items with sequence number less than the sequence number of the cursor with the least sequence number, the slow clients can increase the memory usage. We handle such slow clients by dropping the respective cursors on the checkpoint manager and falling back to disk snapshots.
 
-### Deduplication
+## Deduplication
 Deduplication is removal of duplicate versions of the same key in a snapshot and retention of only the final version of the key in that snapshot.
 
 In a Couchbase bucket, deduplication is done both in memory and on disks. In memory, deduplication is done when (1) an item update is written onto an open (mutable) checkpoint and (2) when multiple closed (immutable) checkpoints are merged into a single closed checkpoint. On disk, deduplication is done when multiple disk snapshots are compacted into a single disk snapshot during compaction. However, when multiple disk snapshots are merged logically into a single DCP backfill snapshot deduplication is not done.
