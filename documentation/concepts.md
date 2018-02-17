@@ -38,6 +38,8 @@ Point-in-time snapshots are the snapshots that are created on the fly. That is, 
 
 Below is an example how point-in-time snapshots give consistent view of the vbucket across multiple clients:
 
+![Point-in-time Snapshots](../images/point_in_time_snapshots.jpg)
+
 1) Say the source vbucket has items from sequence number 0 to 100 and a replication client R1 makes a request for the copy of data. Items from sequence number 0 to 100 are sent as a snapshot (point-in-time snapshot) to R1 and a cursor C1 that corresponds to the client R1 is marked on the checkpoint manager.
 
 2) At a later time, say 20 more items are appended and hence the highest sequence number is 120. If another client R2 requests for data, items from sequence number 0 to 120 are sent as a snapshot to R2 and a cursor C2 that corresponds to the client R2 is marked on the checkpoint manager.
