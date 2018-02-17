@@ -49,3 +49,11 @@ Note that cursors C1 and C2 are important to start over quickly from where the c
 Point-in-time snapshots are good for steady state replication as the replication clients can get their own snapshots that are created on demand and hence avoiding any wait for a snapshot to be created, thereby catching up with the source very fast with the latest key-value pairs shipped over as soon as possible.
 
 Slow clients and lagging (deferred) clients do not work well with point-in-time snapshots. As we cannot eject from checkpoint manager (memory) the items with sequence number less than the sequence number of the cursor with the least sequence number, the slow clients can increase the memory usage. We handle such slow clients by dropping the respective cursors on the checkpoint manager and falling back to disk snapshots.
+
+### Deduplication
+Deduplication is removal of duplicate versions of the same key in a snapshot and retention of only the final version of the key in that snapshot.
+
+In a Couchbase bucket, deduplication is done both in memory and on disks. In memory, deduplication is done when (1) an item update is written onto an open (mutable) checkpoint and (2) when multiple closed (immutable) checkpoints are merged into a single closed checkpoint. On disk, deduplication is done when multiple disk snapshots are compacted into a single disk snapshot during compaction. However, when multiple disk snapshots are merged logically into a single DCP backfill snapshot deduplication is not done.
+
+In an Ephemeral bucket, deduplication is done periodically by removing stale copies and also when a backfill snapshot is formed.
+
