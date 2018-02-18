@@ -61,3 +61,22 @@ In a Couchbase bucket, deduplication is done both in memory and on disks. In mem
 
 In an Ephemeral bucket, deduplication is done periodically by removing stale copies and also when a backfill snapshot is formed.
 
+## Streaming from a replica vbucket
+DCP is a protocol which does master-slave replication. That is all the clients (slaves) get the copy of the data which is eventually consistent with the server vbucket (master).
+
+So it is always best to stream data from an active vbucket which is the master in our model. However due to requirements like having additional redundancy some clients choose to stream from replica vbuckets (slaves) as well. Streaming data from slaves comes with some additional complexity on the server (DCP Producer).
+
+Since the checkpoints on the server use [point-in-time snapshots](concepts.md#point-in-time-snapshots-in-memory-snapshots), the snapshots received by the replica vbuckets and the snapshots persisted by it need not be the same. This happens when the replica vbucket persists an incomplete point-in-time snapshot from the active vbucket. So while streaming data from the replica vbuckets we must combine disk snapshot and the point-in-time snapshot into one snapshot. A caveat here is that the replica vbucket might not have received all the items in the latest point-in-time snapshot, so the DCP client streaming from replica will have to wait till the replica gets all the items in the latest snapshot from the active.
+
+Consider the below example:
+1) Active vbucket is sending a point-in-time snapshot from 1 to 500, and has sent upto seqno 300. A key K1 might have a value of V1 at seqno 100 and a value of V1' at seqno 400. Now due to deduplication, the snapshot holds K1 only at seqno 400.
+
+2) The replica vbucket persists the items from 1 to 300 as a disk snapshot.
+
+3) A client tries to stream items from the replica vbucket and gets a disk snapshot of 1 to 300.
+
+4) The disk snapshot from seqno 1 to seqno 300 is inconsitent because it does not contains an old or newer version of K1 at all.
+
+5) Hence while streaming from the replica vbucket, we must combine the disk snapshot and the point-in-time snapshot being received by the replica vbucket as a single snapshot (from 1 to 500 in this case). Note that the client snapshot cannot be completely sent until the replica receives the snapshot from 1 to 500 fully from the active.
+
+ 
