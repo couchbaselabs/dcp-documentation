@@ -59,7 +59,7 @@ Resumability upon restart of a DCP stream is decided through the use of client s
 
 The server decides to whether to resume from that start seqno or to ask client to rollback based on the [this logic](rollback.md).
 
-If the server decides to resume the stream then the client has to maintain the state variables as explained in the previous section. If the client is asked to rollback then it should do as explained in the next section.
+If the server decides to resume the stream then the client has to maintain the state variables as explained in the [previous section](building-a-simple-client.md#client-side-state-for-a-stream). If the client is asked to rollback then it should do as explained in the [next section](building-a-simple-client.md#handling-a-rollback).
 
 ### Handling a rollback
 A rollback is necessary when a DCP client has a different history from the server for that particular vbucket. Clients can choose to handle the rollback in different ways.
