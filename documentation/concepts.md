@@ -21,10 +21,10 @@ DCP provides high throughput and low latency by keeping all of the most recent d
 ## Snapshots
 
 Snapshots are very critical to achieve the above 4 architectural foundations of DCP.
-
+up to
 In the most basic sense, a snapshot (a full snapshot) is an immutable view of the KV store at an instance. This is also a consistent view of the KV store at that instance.
 
-In Couchbase server, snapshot is an immutable copy of the key-value pairs in a vbucket (partition), received in a duration of time. That duration of time is marked by a 'start sequence number' and an 'end sequence number'. Successive snapshots give a consistent view of the vbucket upto a particular point, that is, till the 'end sequence number' of the last snapshot. Snapshots provide restartability when streaming items to replicas or other DCP clients. Snapshots also deduplicate multiple versions of the key by keeping only the latest value of the key.
+In Couchbase server, snapshot is an immutable copy of the key-value pairs in a vbucket (partition), received in a duration of time. That duration of time is marked by a 'start sequence number' and an 'end sequence number'. Successive snapshots give a consistent view of the vbucket up to a particular point, that is, till the 'end sequence number' of the last snapshot. Snapshots provide restartability when streaming items to replicas or other DCP clients. Snapshots also deduplicate multiple versions of the key by keeping only the latest value of the key.
 
 There are two types of snapshots that are formed when streaming items from the Couchbase vbuckets. When a client connects to the source, it initially gets a 'disk snapshot', and later when the client catches up with the source and hence has reached the steady state, it starts getting 'point-in-time' snapshots from memory.
 
@@ -44,9 +44,9 @@ Below is an example how point-in-time snapshots give consistent view of the vbuc
 
 2) At a later time, say 20 more items are appended and hence the highest sequence number is 120. If another client R2 requests for data, items from sequence number 0 to 120 are sent as a snapshot to R2 and a cursor C2 that corresponds to the client R2 is marked on the checkpoint manager.
 
-3) When more data is appended to the vbucket, say until sequence number of 150, the client R1 can get upto 150 in a successive point-in-time snapshot from 101 to 150.
+3) When more data is appended to the vbucket, say until sequence number of 150, the client R1 can get up to 150 in a successive point-in-time snapshot from 101 to 150.
 
-4) The client R2 can get upto 150 in a successive point-in-time snapshot from 121 to 150.
+4) The client R2 can get up to 150 in a successive point-in-time snapshot from 121 to 150.
 
 Note that cursors C1 and C2 are important to start over quickly from where the clients R1 and R2 had left before. As the cursors move, the key-value pairs with sequence number less than the sequence number where any cursor is marked can be removed from memory.
 
@@ -69,7 +69,7 @@ So it is always best to stream data from an active vbucket which is the master i
 Since the checkpoints on the server use [point-in-time snapshots](concepts.md#point-in-time-snapshots-in-memory-snapshots), the snapshots received by the replica vbuckets and the snapshots persisted by it need not be the same. This happens when the replica vbucket persists an incomplete point-in-time snapshot from the active vbucket. So while streaming data from the replica vbuckets we must combine disk snapshot and the point-in-time snapshot into one snapshot. A caveat here is that the replica vbucket might not have received all the items in the latest point-in-time snapshot, so the DCP client streaming from replica will have to wait till the replica gets all the items in the latest snapshot from the active.
 
 Consider the below example:
-1) Active vbucket is sending a point-in-time snapshot from 1 to 500, and has sent upto seqno 300. A key K1 might have a value of V1 at seqno 100 and a value of V1' at seqno 400. Now due to deduplication, the snapshot holds K1 only at seqno 400.
+1) Active vbucket is sending a point-in-time snapshot from 1 to 500, and has sent up to seqno 300. A key K1 might have a value of V1 at seqno 100 and a value of V1' at seqno 400. Now due to deduplication, the snapshot holds K1 only at seqno 400.
 
 2) The replica vbucket persists the items from 1 to 300 as a disk snapshot.
 
