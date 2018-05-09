@@ -1,13 +1,16 @@
 ### Deletion (0x58)
 
-Tells the consumer that the message contains a key deletion.
+Tells the consumer that the message contains a key deletion. Two variants of a
+deletion packet exist. The original 'V1' version and an updated 'V2' which
+carries additional meta-data. The two variants are described throughout this
+document as V1 and V2.
 
 The request:
 * Must have extras
 * Must have key
 * Must not have value
 
-Extra looks like:
+V1 Extra looks like:
 
      Byte/     0       |       1       |       2       |       3       |
         /              |               |               |               |
@@ -19,15 +22,34 @@ Extra looks like:
       8| rev seqno                                                     |
        |                                                               |
        +---------------+---------------+---------------+---------------+
-     16| Metadata Size                 | clen          |
-       +---------------+-------------------------------*
-       Total 19 bytes
+     16| Extended Metadata (nmeta)     |
+       +---------------+---------------*
+       Total 18 bytes
 
-The metadata is located after the items key.
+The 'metadata' is located after the item's key.
+
+V2 Extra looks like:
+
+     Byte/     0       |       1       |       2       |       3       |
+        /              |               |               |               |
+       |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+       +---------------+---------------+---------------+---------------+
+      0| by_seqo                                                       |
+       |                                                               |
+       +---------------+---------------+---------------+---------------+
+      8| rev seqno                                                     |
+       |                                                               |
+       +---------------+---------------+---------------+---------------+
+     16| Delete Time                                                   |
+       +---------------+-----------------------------------------------+
+     20| clen          |
+       +---------------*
+       Total 21 bytes
 
 Please see "Collections Enabled" for description of clen field.
 
-The client should not send a reply to this command. The following example shows the breakdown of the message:
+The client should not send a reply to this command. The following example shows
+the breakdown of the message (V1 shown):
 
       Byte/     0       |       1       |       2       |       3       |
          /              |               |               |               |
@@ -73,8 +95,7 @@ The client should not send a reply to this command. The following example shows 
       by seqno   (24-31): 0x0000000000000005
       rev seqno  (32-39): 0x0000000000000001
       nmeta      (40-41): 0x0000
-      clen       (42)   : 0x1
-    Key          (43-50): c::hello
+    Key          (43-50): hello
 
 ### Returns
 
@@ -96,25 +117,36 @@ See
 for details of the encoding scheme.
 
 ### Extended Meta Data Section
+
 The extended meta data section is used to send extra meta data for a particular deletion. This section is at the very end, after the value. Its length will be set in the nmeta field.
 * [**Ext_Meta**](extended_meta/ext_meta_ver1.md)
 
 ### Collections Enabled
 
 If the DCP channel is opened with collections enabled then all deletions sent
-will include 1 extra byte that encodes the collection length (shown as "clen" in the
-above encoding diagram). The collection length tells the client how many bytes of
-the key encode the collection name.
+will use the V2 format. The 1 byte collection length (shown as "clen" in the
+above V2 encoding diagram) is used to show how many bytes of the key are the
+collection name.
 
-The diagram above shows a key deleted in the "c" collection with a separator of
-"::", thus the key is "c::hello".
+For example if the key was "c::mykey", the key-len field would contain 8 and
+clen would contain 1, allowing the client to see that the collection of the item
+is the first byte, 'c'.
 
 If the deletion relates to a key in the default collection, then the collection
 length would be 0.
 
-If the DCP channel is not opened with collections enabled, then this data is not
-sent and we will encode a deletion packet which is compatible with legacy
-clients.
+If the DCP channel is not opened with collections enabled then the V1 format is
+used and only deletes of the default collection are sent.
+
+### Delete Time
+
+If the DCP channel is opened with 'include delete-times' then all deletions sent
+will use the V2 format.
+
+The delete time field is used to time stamp when the item was deleted. This
+field is mainly of use to clients building a replica of an active vbucket as
+the delete time is persisted and used to allow deletions to remain on disk for
+a fixed period.
 
 ### Errors
 
