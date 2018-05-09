@@ -6,6 +6,10 @@ Dead connections will be detected through the use of a noop command which will b
 
 Dead connection detection is turned off by default and must be enabled by the Consumer. It is highly recommended that the Consumer enable dead connection detection if the Consumer is not on the same node as the Producer. To enable dead connection detection the Consumer must send two [Control](commands/control.md) messages. The first [Control](commands/control.md) message will contain the key set to *"enable_noop"* and the value set to *"true"*. The second control message should set the noop interval by setting the key to *"set_noop_interval"* and the value should be a number (in seconds) in string form. We recommend setting the noop interval to 120 seconds. If the recommended value is choosen then the value of this [Control](commands/control.md) message will be *"120"*.
 
+##### Update for Spock (5.0.0)
+
+To support fast-failover - an ns_server feature that monitors DCP traffic between nodes to determine whether they are healthy - the noop interval was required to be reduced to 1 second.  To avoid a very small timeout (i.e. 2 seconds) a second configuration parameter is introduced, called *"dcp_idle_timeout"*.  Unlike the noop interval it is not sent by the consumer to the producer, instead both the consumer and producer read the value from their local configuration.  By default the value is 360 seconds.
+
 #### Handling a noop message
 
 Once a Consumer has made at least one successful [Stream Request](commands/stream-request.md), the Producer will start an internal timer equal to one noop interval. If no other message (e.g. Mutation) is sent by the Producer in that time, then it will instead send a Noop (and reset the interval timer).
