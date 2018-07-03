@@ -104,7 +104,7 @@ This message will not return a response unless an error occurs.
 ### Extended Attributes (XATTRs)
 
 If a Document has XATTRs and `DCP_OPEN_INCLUDE_XATTRS` was set as part
-of the [DCP_OPEN](open-connection.md) message, then the `DCP_MUTATION`
+of the [DCP_OPEN](open-connection.md) message, then the `DCP_DELETION`
 message will include the XATTRs as part of the Value payload.
 
 The presence of XATTRs is indicated by setting the XATTR bit in the
