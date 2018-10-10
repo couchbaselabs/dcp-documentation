@@ -20,4 +20,8 @@ When the Consumer receives a noop message it should immediately respond with a n
 
 The Consumer should assume the connection is dead if it has not seen any messages for 2 * noop_interval. If no messages are seen the the Consumer should disconnect its connection.
 
+##### Update for Spock (5.0.0)
+
+The Consumer (and Producer) will assume the connection is dead and disconnect, if a message (including a noop) has not been recieved for the *"dcp_idle_timeout"* period, which is defaulted to 360 seconds.
+
 **Note:** The noop is only sent by the Producer if it doesn't have anything to send for a time equal to one noop interval. If any message is sent from the Producer then the noop is rescheduled. Therefore if messages are constantly being sent by a Producer then the Consumer will never receive a noop.
